@@ -271,12 +271,13 @@ namespace ISPG.Conversion.Core
         private string GetSourceOrigin(UnitRecord unit)
         {
             // Try explicit source origin fields
-            var explicit = GetFirstNested<string>(unit, new string[][]
+            var paths = new[]
             {
-                new string[] { "source", "source_origin" },
-                new string[] { "migration_assumptions", "source_origin" },
-                new string[] { "migration_assumptions", "old_origin" }
-            });
+                new[] { "source", "source_origin" },
+                new[] { "migration_assumptions", "source_origin" },
+                new[] { "migration_assumptions", "old_origin" }
+            };
+            var explicit = GetFirstNested<string>(unit, paths);
 
             if (!string.IsNullOrEmpty(explicit))
                 return NormalizeOrigin(explicit);
