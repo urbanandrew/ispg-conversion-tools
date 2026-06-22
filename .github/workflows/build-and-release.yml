@@ -27,17 +27,22 @@ jobs:
     - name: Build solution (Revit 2025)
       run: msbuild ISPG.Conversion.sln /p:Configuration=Release /p:Platform=x64
     
+    - name: Build solution (Revit 2027)
+      run: msbuild ISPG.Conversion.sln /p:Configuration=Revit2027 /p:Platform=x64
+    
     - name: Create installer package
       shell: pwsh
       run: |
         # Create installer directory structure
         New-Item -ItemType Directory -Force -Path "installer/Revit2025"
+        New-Item -ItemType Directory -Force -Path "installer/Revit2027"
         
-        # Copy DLL
+        # Copy DLLs
         Copy-Item "ISPG.Conversion\bin\x64\Release\ISPG.Conversion.dll" "installer\Revit2025\"
+        Copy-Item "ISPG.Conversion\bin\x64\Revit2027\ISPG.Conversion.dll" "installer\Revit2027\"
         
-        # Create .addin manifest
-        $addinContent = @"
+        # Create .addin manifests for both versions
+        $addinContent2025 = @"
         <?xml version="1.0" encoding="utf-8"?>
         <RevitAddIns>
           <AddIn Type="Application">
@@ -50,7 +55,22 @@ jobs:
           </AddIn>
         </RevitAddIns>
         "@
-        $addinContent | Out-File "installer\Revit2025\ISPG.Conversion.addin" -Encoding UTF8
+        $addinContent2025 | Out-File "installer\Revit2025\ISPG.Conversion.addin" -Encoding UTF8
+        
+        $addinContent2027 = @"
+        <?xml version="1.0" encoding="utf-8"?>
+        <RevitAddIns>
+          <AddIn Type="Application">
+            <Name>ISPG Conversion Tools</Name>
+            <Assembly>ISPG.Conversion.dll</Assembly>
+            <AddInId>F8C6D928-9E4B-4B8A-8D3F-5E6C7D8E9F0A</AddInId>
+            <FullClassName>ISPG.Conversion.Application</FullClassName>
+            <VendorId>ISPG</VendorId>
+            <VendorDescription>Insite Property Group</VendorDescription>
+          </AddIn>
+        </RevitAddIns>
+        "@
+        $addinContent2027 | Out-File "installer\Revit2027\ISPG.Conversion.addin" -Encoding UTF8
         
         # Create installer script
         $installerScript = @"
@@ -60,29 +80,44 @@ jobs:
         echo ISPG Conversion Tools - Installer
         echo ================================================================
         echo.
-        echo Installing for Revit 2025...
+        echo This installer supports Revit 2025 and Revit 2027
         echo.
         
-        set TARGET_DIR=%APPDATA%\Autodesk\Revit\Addins\2025
+        REM Check for Revit 2025
+        set REVIT2025_DIR=%APPDATA%\Autodesk\Revit\Addins\2025
+        if exist "%REVIT2025_DIR%" (
+            echo Installing for Revit 2025...
+            if not exist "%REVIT2025_DIR%" mkdir "%REVIT2025_DIR%"
+            copy /Y "%~dp0Revit2025\ISPG.Conversion.dll" "%REVIT2025_DIR%\"
+            copy /Y "%~dp0Revit2025\ISPG.Conversion.addin" "%REVIT2025_DIR%\"
+            echo   - Revit 2025: INSTALLED
+        ) else (
+            echo   - Revit 2025: NOT FOUND (skipped)
+        )
         
-        REM Create target directory if it doesn't exist
-        if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
+        echo.
         
-        REM Copy files
-        copy /Y "%~dp0Revit2025\ISPG.Conversion.dll" "%TARGET_DIR%\"
-        copy /Y "%~dp0Revit2025\ISPG.Conversion.addin" "%TARGET_DIR%\"
+        REM Check for Revit 2027
+        set REVIT2027_DIR=%APPDATA%\Autodesk\Revit\Addins\2027
+        if exist "%REVIT2027_DIR%" (
+            echo Installing for Revit 2027...
+            if not exist "%REVIT2027_DIR%" mkdir "%REVIT2027_DIR%"
+            copy /Y "%~dp0Revit2027\ISPG.Conversion.dll" "%REVIT2027_DIR%\"
+            copy /Y "%~dp0Revit2027\ISPG.Conversion.addin" "%REVIT2027_DIR%\"
+            echo   - Revit 2027: INSTALLED
+        ) else (
+            echo   - Revit 2027: NOT FOUND (skipped)
+        )
         
         echo.
         echo ================================================================
         echo Installation Complete!
         echo ================================================================
         echo.
-        echo Files installed to:
-        echo %TARGET_DIR%
-        echo.
         echo Next steps:
-        echo 1. Launch Revit 2025
-        echo 2. Look for 'ISPG Conversion Tools' in the ribbon
+        echo 1. Launch Revit (2025 or 2027)
+        echo 2. Look for 'ISPG' tab in the ribbon
+        echo 3. If the tab doesn't appear, check Add-Ins ^> External Tools
         echo.
         pause
         "@
@@ -95,8 +130,17 @@ jobs:
         ## Installation Instructions
         
         1. Double-click INSTALL.bat
-        2. Launch Revit 2025
-        3. Look for 'ISPG Conversion Tools' in the ribbon
+        2. Launch Revit 2025 or 2027
+        3. Look for 'ISPG' tab in the ribbon
+        
+        ## Troubleshooting
+        
+        If the ISPG tab doesn't appear:
+        1. Go to Add-Ins > External Tools in Revit
+        2. Check for any error messages related to ISPG Conversion
+        3. Verify the files were copied to:
+           - Revit 2025: %APPDATA%\Autodesk\Revit\Addins\2025
+           - Revit 2027: %APPDATA%\Autodesk\Revit\Addins\2027
         
         ## What's Included
         
@@ -109,12 +153,15 @@ jobs:
         
         ## Manual Installation
         
-        If the installer doesn't work, manually copy these files to:
-        %APPDATA%\Autodesk\Revit\Addins\2025\
+        If the installer doesn't work, manually copy these files:
         
-        Files to copy:
-        - Revit2025\ISPG.Conversion.dll
-        - Revit2025\ISPG.Conversion.addin
+        For Revit 2025:
+        - Copy Revit2025\ISPG.Conversion.dll to %APPDATA%\Autodesk\Revit\Addins\2025\
+        - Copy Revit2025\ISPG.Conversion.addin to %APPDATA%\Autodesk\Revit\Addins\2025\
+        
+        For Revit 2027:
+        - Copy Revit2027\ISPG.Conversion.dll to %APPDATA%\Autodesk\Revit\Addins\2027\
+        - Copy Revit2027\ISPG.Conversion.addin to %APPDATA%\Autodesk\Revit\Addins\2027\
         
         ---
         Built with GitHub Actions
@@ -143,12 +190,17 @@ jobs:
           1. Download `ISPG-Conversion-Installer.zip` below
           2. Extract the ZIP file
           3. Double-click `INSTALL.bat`
-          4. Launch Revit 2025
+          4. Launch Revit 2025 or 2027
+          5. Look for 'ISPG' tab in the ribbon
+          
+          ### Troubleshooting
+          If the ISPG tab doesn't appear in Revit, go to **Add-Ins > External Tools** to check for error messages.
           
           ### What's New
+          - Support for both Revit 2025 and Revit 2027
           - Automated build via GitHub Actions
           - One-click installer
           
-          Built for Revit 2025 | .NET Framework 4.8
+          Built for Revit 2025 & 2027 | .NET Framework 4.8
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

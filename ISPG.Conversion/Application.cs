@@ -38,7 +38,11 @@ namespace ISPG.Conversion
             {
                 app.CreateRibbonTab(tabName);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Tab already exists - this is fine
+                System.Diagnostics.Debug.WriteLine($"Tab creation: {ex.Message}");
+            }
 
             // Create panel
             RibbonPanel conversionPanel = app.CreateRibbonPanel(tabName, "Conversion");
