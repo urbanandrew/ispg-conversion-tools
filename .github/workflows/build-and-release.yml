@@ -28,13 +28,13 @@ jobs:
       run: msbuild ISPG.Conversion.sln /p:Configuration=Release /p:Platform=x64
     
     - name: Create installer package
+      shell: pwsh
       run: |
         # Create installer directory structure
-        New-Item -ItemType Directory -Force -Path installer
-        New-Item -ItemType Directory -Force -Path installer\Revit2025
+        New-Item -ItemType Directory -Force -Path "installer/Revit2025"
         
-        # Copy built DLL
-        Copy-Item "ISPG.Conversion\bin\x64\Release\net48\ISPG.Conversion.dll" "installer\Revit2025\"
+        # Copy DLL
+        Copy-Item "ISPG.Conversion\bin\x64\Release\ISPG.Conversion.dll" "installer\Revit2025\"
         
         # Create .addin manifest
         $addinContent = @"
