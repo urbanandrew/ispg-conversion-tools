@@ -277,7 +277,7 @@ namespace ISPG.Conversion.Core
                 new[] { "migration_assumptions", "source_origin" },
                 new[] { "migration_assumptions", "old_origin" }
             };
-            var explicit = GetFirstNested<string>(unit, paths);
+            var explicit = GetFirstNestedString(unit, paths);
 
             if (!string.IsNullOrEmpty(explicit))
                 return NormalizeOrigin(explicit);
@@ -592,6 +592,21 @@ namespace ISPG.Conversion.Core
             }
 
             return default(T);
+        }
+
+        /// <summary>
+        /// Get first non-null nested string from multiple paths (non-generic overload to avoid C# parsing issues)
+        /// </summary>
+        private string GetFirstNestedString(object obj, string[][] paths)
+        {
+            foreach (var path in paths)
+            {
+                var value = GetNested<string>(obj, path);
+                if (!string.IsNullOrEmpty(value))
+                    return value;
+            }
+
+            return null;
         }
     }
 }
