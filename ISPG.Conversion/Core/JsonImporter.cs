@@ -277,10 +277,10 @@ namespace ISPG.Conversion.Core
                 new[] { "migration_assumptions", "source_origin" },
                 new[] { "migration_assumptions", "old_origin" }
             };
-            var explicit = GetFirstNestedString(unit, paths);
+            var explicitOrigin = GetFirstNestedString(unit, paths);
 
-            if (!string.IsNullOrEmpty(explicit))
-                return NormalizeOrigin(explicit);
+            if (!string.IsNullOrEmpty(explicitOrigin))
+                return NormalizeOrigin(explicitOrigin);
 
             // Infer from family/type name
             string familyName = unit.Source?.FamilyName ?? "";
@@ -298,9 +298,9 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private string GetTargetOrigin(UnitRecord unit)
         {
-            var explicit = GetNested<string>(unit, new[] { "migration_assumptions", "target_origin" });
-            if (!string.IsNullOrEmpty(explicit))
-                return NormalizeOrigin(explicit);
+            var explicitOrigin = GetNested<string>(unit, new[] { "migration_assumptions", "target_origin" });
+            if (!string.IsNullOrEmpty(explicitOrigin))
+                return NormalizeOrigin(explicitOrigin);
 
             return TARGET_ORIGIN;
         }
