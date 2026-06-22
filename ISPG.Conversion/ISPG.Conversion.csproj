@@ -12,12 +12,14 @@
   <PropertyGroup>
     <!-- Revit 2025 paths (default) -->
     <RevitVersion>2025</RevitVersion>
-    <RevitFolder>C:\Program Files\Autodesk\Revit $(RevitVersion)</RevitFolder>
+    <RevitFolder Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)')">C:\Program Files\Autodesk\Revit $(RevitVersion)</RevitFolder>
+    <RevitFolder Condition="'$(RevitFolder)' == '' AND Exists('$(MSBuildProjectDirectory)\..\lib\Revit$(RevitVersion)')">$(MSBuildProjectDirectory)\..\lib\Revit$(RevitVersion)</RevitFolder>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Revit2027'">
     <RevitVersion>2027</RevitVersion>
-    <RevitFolder>C:\Program Files\Autodesk\Revit $(RevitVersion)</RevitFolder>
+    <RevitFolder Condition="Exists('C:\Program Files\Autodesk\Revit $(RevitVersion)')">C:\Program Files\Autodesk\Revit $(RevitVersion)</RevitFolder>
+    <RevitFolder Condition="'$(RevitFolder)' == '' AND Exists('$(MSBuildProjectDirectory)\..\lib\Revit$(RevitVersion)')">$(MSBuildProjectDirectory)\..\lib\Revit$(RevitVersion)</RevitFolder>
   </PropertyGroup>
 
   <ItemGroup>

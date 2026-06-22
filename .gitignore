@@ -9,3 +9,6 @@ packages/
 *.dll
 *.pdb
 *.cache
+
+# Allow Revit API DLLs in lib/ folder for GitHub Actions
+!lib/**/*.dll
