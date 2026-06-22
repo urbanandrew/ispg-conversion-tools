@@ -1,207 +1,130 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using ISPG.Conversion.Helpers;
 
 namespace ISPG.Conversion.Commands
 {
+    /// <summary>
+    /// Unit Material Management: assign materials based on rentable area
+    /// </summary>
     [Transaction(TransactionMode.Manual)]
+    [Regeneration(RegenerationOption.Manual)]
     public class UnitMaterialCommand : IExternalCommand
     {
-        private const string FAMILY_NAME_CONTAINS = "UX5_Unit";
-        private const string AREA_PARAM_NAME = "Label Area";
-        private const string MATERIAL_PARAM_NAME = "Info Material";
-
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            Document doc = commandData.Application.ActiveUIDocument.Document;
+            var doc = commandData.Application.ActiveUIDocument.Document;
 
             try
             {
-                // Collect UX5_Unit blocks
-                List<ElementId> umxBlocks = CollectUmxBlocks(doc);
-
-                UIHelper.Alert(
-                    $"Found {umxBlocks.Count} UX5_Unit blocks.\n\n" +
-                    "Materials will be assigned based on rentable area.",
-                    "Unit Material Assignment"
-                );
+                // Collect UMX blocks
+                var umxBlocks = CollectUmxBlocks(doc);
 
                 if (umxBlocks.Count == 0)
                 {
-                    UIHelper.Alert("No UX5_Unit blocks found in the project.", "Unit Material");
+                    TaskDialog.Show("Unit Material Management", 
+                        "No UX5_Unit blocks found in the project.");
                     return Result.Cancelled;
                 }
 
                 // Update materials
-                var result = UpdateMaterialForUmxBlocks(doc, umxBlocks);
+                var (updated, skipped) = UpdateMaterialForUmxBlocks(doc, umxBlocks);
 
-                UIHelper.Alert(
-                    $"Material Assignment Complete\n\n" +
-                    $"Updated: {result.Updated}\n" +
-                    $"Skipped: {result.Skipped}\n\n" +
-                    $"Skipped elements either had no Label Area, " +
-                    $"no matching material, or read-only material parameter.",
-                    "Unit Material"
-                );
+                TaskDialog.Show("Unit Material Management",
+                    $"Found UX5_Unit blocks: {umxBlocks.Count}\n\n" +
+                    $"Updated materials: {updated}\n" +
+                    $"Skipped: {skipped}");
 
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
-                message = ex.ToString();
+                message = ex.Message;
                 return Result.Failed;
             }
         }
 
         private List<ElementId> CollectUmxBlocks(Document doc)
         {
-            List<ElementId> umxBlocks = new List<ElementId>();
+            var umxBlocks = new List<ElementId>();
 
-            FilteredElementCollector collector = new FilteredElementCollector(doc)
+            var instances = new FilteredElementCollector(doc)
                 .OfClass(typeof(FamilyInstance))
-                .WhereElementIsNotElementType();
+                .WhereElementIsNotElementType()
+                .Cast<FamilyInstance>();
 
-            foreach (FamilyInstance inst in collector)
+            foreach (var inst in instances)
             {
                 try
                 {
-                    string familyName = inst.Symbol.Family.Name;
-
-                    if (familyName.Contains(FAMILY_NAME_CONTAINS) && inst.SuperComponent == null)
+                    var familyName = inst.Symbol?.Family?.Name;
+                    if (!string.IsNullOrEmpty(familyName) && 
+                        familyName.Contains("UX5_Unit") && 
+                        inst.SuperComponent == null)
                     {
                         umxBlocks.Add(inst.Id);
                     }
                 }
-                catch { }
+                catch
+                {
+                    // Ignore failures
+                }
             }
 
             return umxBlocks;
         }
 
-        private int DetermineMaterialNumber(double rentableArea)
+        private (int updated, int skipped) UpdateMaterialForUmxBlocks(Document doc, List<ElementId> umxBlocks)
         {
-            if (rentableArea <= 100)
-            {
-                return (int)(5 * Math.Round(rentableArea / 5.0));
-            }
-            else if (rentableArea <= 150)
-            {
-                return (int)(10 * Math.Round(rentableArea / 10.0));
-            }
-            else
-            {
-                return (int)(25 * Math.Round(rentableArea / 25.0));
-            }
-        }
+            // Get all materials indexed by name
+            var matsByName = GetUnitMaterialsByName(doc);
 
-        private string FormatMaterialString(int materialNumber)
-        {
-            if (materialNumber < 100)
-            {
-                return $"0{materialNumber}";
-            }
-            else if (materialNumber <= 275)
-            {
-                return materialNumber.ToString();
-            }
-            else
-            {
-                return "300+";
-            }
-        }
+            int updated = 0;
+            int skipped = 0;
 
-        private Dictionary<string, Material> GetUnitMaterialsByName(Document doc)
-        {
-            Dictionary<string, Material> mats = new Dictionary<string, Material>();
-
-            FilteredElementCollector collector = new FilteredElementCollector(doc)
-                .OfClass(typeof(Material));
-
-            foreach (Material mat in collector)
-            {
-                try
-                {
-                    mats[mat.Name] = mat;
-                }
-                catch { }
-            }
-
-            return mats;
-        }
-
-        private double? GetAreaValue(Element element, string paramName)
-        {
-            Parameter p = element.LookupParameter(paramName);
-
-            if (p == null)
-                return null;
-
-            try
-            {
-                if (p.StorageType == StorageType.Double)
-                {
-                    return p.AsDouble();
-                }
-            }
-            catch { }
-
-            return null;
-        }
-
-        private class UpdateResult
-        {
-            public int Updated { get; set; }
-            public int Skipped { get; set; }
-        }
-
-        private UpdateResult UpdateMaterialForUmxBlocks(Document doc, List<ElementId> umxBlocks)
-        {
-            var result = new UpdateResult();
-            Dictionary<string, Material> matsByName = GetUnitMaterialsByName(doc);
-
-            using (Transaction tr = new Transaction(doc, "Update UMX Block Materials"))
+            using (var tr = new Transaction(doc, "Update UMX Block Materials"))
             {
                 tr.Start();
 
                 try
                 {
-                    foreach (ElementId uxId in umxBlocks)
+                    foreach (var uxId in umxBlocks)
                     {
-                        Element ux = doc.GetElement(uxId);
+                        var ux = doc.GetElement(uxId);
 
-                        double? rentableArea = GetAreaValue(ux, AREA_PARAM_NAME);
-
-                        if (!rentableArea.HasValue)
+                        // Get rentable area
+                        var rentableArea = GetAreaValue(ux, "Label Area");
+                        if (rentableArea == null)
                         {
-                            result.Skipped++;
+                            skipped++;
                             continue;
                         }
 
-                        int materialNumber = DetermineMaterialNumber(rentableArea.Value);
-                        string materialString = FormatMaterialString(materialNumber);
-                        string materialName = $"Units {materialString}";
+                        // Determine material
+                        var materialNumber = DetermineMaterialNumber(rentableArea.Value);
+                        var materialString = FormatMaterialString(materialNumber);
+                        var materialName = $"Units {materialString}";
 
-                        if (!matsByName.ContainsKey(materialName))
+                        // Find material
+                        if (!matsByName.TryGetValue(materialName, out Material unitMaterial))
                         {
-                            result.Skipped++;
+                            skipped++;
                             continue;
                         }
 
-                        Material unitMaterial = matsByName[materialName];
-
-                        Parameter pMat = ux.LookupParameter(MATERIAL_PARAM_NAME);
-
+                        // Set material parameter
+                        var pMat = ux.LookupParameter("Info Material");
                         if (pMat == null || pMat.IsReadOnly)
                         {
-                            result.Skipped++;
+                            skipped++;
                             continue;
                         }
 
                         pMat.Set(unitMaterial.Id);
-                        result.Updated++;
+                        updated++;
                     }
 
                     tr.Commit();
@@ -213,7 +136,70 @@ namespace ISPG.Conversion.Commands
                 }
             }
 
-            return result;
+            return (updated, skipped);
+        }
+
+        private Dictionary<string, Material> GetUnitMaterialsByName(Document doc)
+        {
+            var mats = new Dictionary<string, Material>();
+
+            var allMats = new FilteredElementCollector(doc)
+                .OfClass(typeof(Material))
+                .Cast<Material>();
+
+            foreach (var mat in allMats)
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(mat.Name))
+                        mats[mat.Name] = mat;
+                }
+                catch
+                {
+                    // Ignore failures
+                }
+            }
+
+            return mats;
+        }
+
+        private double? GetAreaValue(Element element, string paramName)
+        {
+            var p = element.LookupParameter(paramName);
+            if (p == null)
+                return null;
+
+            try
+            {
+                if (p.StorageType == StorageType.Double)
+                    return p.AsDouble();
+            }
+            catch
+            {
+                // Ignore failures
+            }
+
+            return null;
+        }
+
+        private int DetermineMaterialNumber(double rentableArea)
+        {
+            if (rentableArea <= 100)
+                return (int)(5 * Math.Round(rentableArea / 5.0));
+            else if (rentableArea <= 150)
+                return (int)(10 * Math.Round(rentableArea / 10.0));
+            else
+                return (int)(25 * Math.Round(rentableArea / 25.0));
+        }
+
+        private string FormatMaterialString(int materialNumber)
+        {
+            if (materialNumber < 100)
+                return $"0{materialNumber}";
+            else if (materialNumber <= 275)
+                return materialNumber.ToString();
+            else
+                return "300+";
         }
     }
 }

@@ -1,192 +1,222 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
-using ISPG.Conversion.Helpers;
 
 namespace ISPG.Conversion.Commands
 {
+    /// <summary>
+    /// Interactive unit renumbering: pick elements one-by-one, renumber sequentially
+    /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
     public class UnitNumberingCommand : IExternalCommand
     {
-        private class CategoryOption
+        private static readonly string[] NUMBER_PARAM_NAMES = new[]
         {
-            public string Label { get; set; }
-            public BuiltInCategory Category { get; set; }
+            "Info Unit Number",
+            "UX_Info_Unit_Number"
+        };
 
-            public CategoryOption(string label, BuiltInCategory category)
-            {
-                Label = label;
-                Category = category;
-            }
-        }
-
-        private static readonly List<CategoryOption> CategoryOptions = new List<CategoryOption>
+        private static readonly CategoryOption[] CATEGORY_OPTIONS = new[]
         {
-            new CategoryOption("Generic Models", BuiltInCategory.OST_GenericModel),
-            new CategoryOption("Parking", BuiltInCategory.OST_Parking)
+            new CategoryOption { Label = "Generic Models", Category = BuiltInCategory.OST_GenericModel },
+            new CategoryOption { Label = "Parking", Category = BuiltInCategory.OST_Parking }
         };
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            UIDocument uidoc = commandData.Application.ActiveUIDocument;
-            Document doc = uidoc.Document;
-            View activeView = doc.ActiveView;
+            var uiDoc = commandData.Application.ActiveUIDocument;
+            var doc = uiDoc.Document;
+            var activeView = doc.ActiveView;
 
             try
             {
-                // Check if we're in a model view
+                // Validate view type
                 if (!IsModelView(activeView))
                 {
-                    UIHelper.Alert(
-                        "Please run this from a model view, not a sheet, schedule, legend, or browser view.",
-                        "Unit Numbering"
-                    );
+                    TaskDialog.Show("Unit Numbering", 
+                        "Please run this from a model view, not a sheet, schedule, legend, or browser view.");
                     return Result.Cancelled;
                 }
 
-                // Ask for category
-                var categoryOptions = CategoryOptions.Select(opt => 
-                    new OptionItem<CategoryOption>(GetCategoryName(doc, opt), opt)
-                ).ToList();
-
-                var selectedCategory = UIHelper.AskForOption(
-                    "Unit Numbering",
-                    "Pick element type to renumber:",
-                    categoryOptions
-                );
-
-                if (selectedCategory == null)
+                // Ask user to select category
+                var selectedOption = AskForCategoryOption();
+                if (selectedOption == null)
                     return Result.Cancelled;
 
-                string categoryName = GetCategoryName(doc, selectedCategory);
-                BuiltInCategory bic = selectedCategory.Category;
+                var categoryName = GetCategoryName(doc, selectedOption.Category, selectedOption.Label);
 
                 // Ask for starting number
-                string startingNumber = UIHelper.AskForString(
-                    $"Unit Numbering - {categoryName}",
-                    "Enter starting number:",
-                    "001"
-                );
-
+                var startingNumber = AskForStartingNumber(categoryName);
                 if (string.IsNullOrEmpty(startingNumber))
                     return Result.Cancelled;
 
-                // Ask for numbering mode
-                var numberingModes = new List<OptionItem<int>>
-                {
-                    new OptionItem<int>("Consecutive (001, 002, 003, ...)", 1),
-                    new OptionItem<int>("Skip Every Other (001, 003, 005, ...)", 2)
-                };
-
-                int? step = UIHelper.AskForOption(
-                    "Numbering Mode",
-                    "Choose numbering mode:",
-                    numberingModes
-                );
-
-                if (!step.HasValue)
+                // Ask for numbering step
+                var step = AskForNumberingStep();
+                if (step == 0)
                     return Result.Cancelled;
 
-                UIHelper.Alert(
-                    $"After closing this message, select {categoryName.ToLower()} one by one in order.\n\n" +
+                // Instructions
+                TaskDialog.Show("Unit Numbering",
+                    $"After closing this message, select {categoryName} one by one in order.\n\n" +
                     "Each element will be numbered immediately and temporarily highlighted.\n\n" +
-                    "Press ESC when finished.",
-                    $"Unit Numbering - {categoryName}"
-                );
+                    "Press ESC when finished.");
 
-                // Run the interactive numbering
-                PickAndRenumberLive(uidoc, doc, activeView, categoryName, bic, startingNumber, step.Value);
+                // Interactive renumbering
+                PickAndRenumberLive(doc, uiDoc, activeView, categoryName, selectedOption.Category, startingNumber, step);
 
                 return Result.Succeeded;
             }
+            catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+            {
+                return Result.Cancelled;
+            }
             catch (Exception ex)
             {
-                message = ex.ToString();
+                message = ex.Message;
                 return Result.Failed;
             }
         }
 
-        private void PickAndRenumberLive(
-            UIDocument uidoc,
-            Document doc,
-            View activeView,
-            string categoryName,
-            BuiltInCategory bic,
-            string startingIndex,
-            int step)
+        private bool IsModelView(View view)
         {
-            // Collect existing numbers
-            Dictionary<string, ElementId> existingNumbers = CollectExistingNumbers(doc, bic);
-            List<ElementId> renumberedIds = new List<ElementId>();
+            if (view == null) return false;
 
-            CategorySelectionFilter filter = new CategorySelectionFilter(bic);
-            string prompt = $"Select {categoryName.ToLower()} in order. Press ESC when done.";
+            var badTypes = new[]
+            {
+                ViewType.DrawingSheet,
+                ViewType.Schedule,
+                ViewType.ProjectBrowser,
+                ViewType.SystemBrowser,
+                ViewType.Legend
+            };
 
-            int successCount = 0;
-            int failedCount = 0;
-            string currentIndex = startingIndex;
+            return !badTypes.Contains(view.ViewType);
+        }
 
-            using (TransactionGroup tg = new TransactionGroup(doc, $"Renumber {categoryName}"))
+        private CategoryOption AskForCategoryOption()
+        {
+            var dialog = new TaskDialog("Select Category");
+            dialog.MainInstruction = "Which category do you want to renumber?";
+            
+            foreach (var option in CATEGORY_OPTIONS)
+            {
+                dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink1 + Array.IndexOf(CATEGORY_OPTIONS, option), 
+                    option.Label);
+            }
+
+            dialog.CommonButtons = TaskDialogCommonButtons.Cancel;
+            var result = dialog.Show();
+
+            if (result >= TaskDialogResult.CommandLink1 && result <= TaskDialogResult.CommandLink4)
+            {
+                var index = (int)result - (int)TaskDialogResult.CommandLink1;
+                return CATEGORY_OPTIONS[index];
+            }
+
+            return null;
+        }
+
+        private string AskForStartingNumber(string categoryName)
+        {
+            var input = new InputDialog($"Starting Number for {categoryName}", "Enter starting number (e.g., 101, A001, P-001):", "101");
+            if (input.ShowDialog() == true && !string.IsNullOrWhiteSpace(input.InputText))
+            {
+                return input.InputText.Trim();
+            }
+            return null;
+        }
+
+        private int AskForNumberingStep()
+        {
+            var dialog = new TaskDialog("Numbering Mode");
+            dialog.MainInstruction = "How do you want to number?";
+            dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Every number (1, 2, 3...)");
+            dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Every other number (1, 3, 5...)");
+            dialog.CommonButtons = TaskDialogCommonButtons.Cancel;
+
+            var result = dialog.Show();
+            
+            if (result == TaskDialogResult.CommandLink1) return 1;
+            if (result == TaskDialogResult.CommandLink2) return 2;
+            
+            return 0;
+        }
+
+        private string GetCategoryName(Document doc, BuiltInCategory bic, string fallback)
+        {
+            try
+            {
+                var cat = doc.Settings.Categories.get_Item(bic);
+                return cat?.Name ?? fallback;
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
+        private void PickAndRenumberLive(Document doc, UIDocument uiDoc, View activeView, 
+            string categoryName, BuiltInCategory bic, string startingNumber, int step)
+        {
+            var renumberedIds = new List<ElementId>();
+            var successCount = 0;
+            var failedCount = 0;
+            var currentNumber = startingNumber;
+
+            using (var tg = new TransactionGroup(doc, $"Renumber {categoryName}"))
             {
                 tg.Start();
 
                 try
                 {
+                    var selectionFilter = new CategorySelectionFilter(bic);
+
                     while (true)
                     {
-                        Reference pickedRef = null;
-
+                        // Pick element
+                        Reference pickedRef;
                         try
                         {
-                            pickedRef = uidoc.Selection.PickObject(
-                                ObjectType.Element,
-                                filter,
-                                prompt
-                            );
+                            pickedRef = uiDoc.Selection.PickObject(ObjectType.Element, selectionFilter,
+                                $"Click {categoryName} to renumber as '{currentNumber}' (ESC to finish)");
                         }
                         catch (Autodesk.Revit.Exceptions.OperationCanceledException)
                         {
-                            // User pressed ESC
-                            break;
+                            break; // User pressed ESC
                         }
 
                         if (pickedRef == null)
                             break;
 
-                        Element targetElement = doc.GetElement(pickedRef.ElementId);
-
-                        if (targetElement == null)
+                        var element = doc.GetElement(pickedRef);
+                        if (element == null)
                             continue;
 
-                        using (Transaction t = new Transaction(doc, $"Renumber {categoryName}"))
+                        // Renumber in its own transaction
+                        using (var t = new Transaction(doc, $"Set {currentNumber}"))
                         {
-                            t.Start();
-
                             try
                             {
-                                bool success = RenumberElementNow(
-                                    targetElement,
-                                    currentIndex,
-                                    existingNumbers,
-                                    activeView
-                                );
+                                t.Start();
 
-                                if (success)
+                                if (SetNumber(element, currentNumber))
                                 {
-                                    renumberedIds.Add(targetElement.Id);
+                                    MarkElementAsRenumbered(activeView, element);
+                                    renumberedIds.Add(element.Id);
                                     successCount++;
+                                    t.Commit();
                                 }
                                 else
                                 {
                                     failedCount++;
+                                    t.RollBack();
                                 }
-
-                                t.Commit();
                             }
                             catch
                             {
@@ -195,7 +225,8 @@ namespace ISPG.Conversion.Commands
                             }
                         }
 
-                        currentIndex = NumberingHelper.IncrementString(currentIndex, step);
+                        // Increment for next pick
+                        currentNumber = IncrementString(currentNumber, step);
                     }
 
                     tg.Assimilate();
@@ -210,10 +241,9 @@ namespace ISPG.Conversion.Commands
             // Clear visual marks
             if (renumberedIds.Count > 0)
             {
-                using (Transaction t = new Transaction(doc, $"Unmark {categoryName}"))
+                using (var t = new Transaction(doc, $"Unmark {categoryName}"))
                 {
                     t.Start();
-
                     try
                     {
                         UnmarkRenumberedElements(activeView, renumberedIds);
@@ -226,156 +256,189 @@ namespace ISPG.Conversion.Commands
                 }
             }
 
-            UIHelper.Alert(
-                $"Renumber complete.\n\nUpdated: {successCount}\nFailed: {failedCount}",
-                $"Unit Numbering - {categoryName}"
-            );
+            TaskDialog.Show($"Renumber {categoryName}",
+                $"Renumber complete.\n\nUpdated: {successCount}\nFailed: {failedCount}");
         }
 
-        private bool RenumberElementNow(
-            Element element,
-            string newNumber,
-            Dictionary<string, ElementId> existingNumbers,
-            View view)
+        private Parameter GetNumberParam(Element element)
         {
-            string oldNumber = NumberingHelper.GetNumber(element);
-
-            if (!string.IsNullOrEmpty(oldNumber) && existingNumbers.ContainsKey(oldNumber))
+            foreach (var paramName in NUMBER_PARAM_NAMES)
             {
-                existingNumbers.Remove(oldNumber);
+                var param = element.LookupParameter(paramName);
+                if (param != null)
+                    return param;
             }
 
-            bool success = NumberingHelper.SetNumber(element, newNumber);
+            return element.get_Parameter(BuiltInParameter.ALL_MODEL_MARK);
+        }
 
-            if (success)
+        private bool SetNumber(Element element, string newNumber)
+        {
+            var param = GetNumberParam(element);
+            if (param == null || param.IsReadOnly)
+                return false;
+
+            try
             {
-                existingNumbers[newNumber] = element.Id;
-                MarkElementAsRenumbered(view, element);
+                param.Set(newNumber);
+                return true;
             }
-
-            return success;
+            catch
+            {
+                return false;
+            }
         }
 
         private void MarkElementAsRenumbered(View view, Element element)
         {
             try
             {
-                OverrideGraphicSettings ogs = new OverrideGraphicSettings();
+                var ogs = new OverrideGraphicSettings();
                 ogs.SetHalftone(true);
                 ogs.SetSurfaceTransparency(75);
                 view.SetElementOverrides(element.Id, ogs);
             }
             catch
             {
-                // Silently fail if marking doesn't work
+                // Ignore failures
             }
         }
 
         private void UnmarkRenumberedElements(View view, List<ElementId> elementIds)
         {
-            try
-            {
-                OverrideGraphicSettings ogs = new OverrideGraphicSettings();
-
-                foreach (ElementId id in elementIds)
-                {
-                    try
-                    {
-                        view.SetElementOverrides(id, ogs);
-                    }
-                    catch { }
-                }
-            }
-            catch { }
-        }
-
-        private Dictionary<string, ElementId> CollectExistingNumbers(Document doc, BuiltInCategory bic)
-        {
-            Dictionary<string, ElementId> data = new Dictionary<string, ElementId>();
-
-            FilteredElementCollector collector = new FilteredElementCollector(doc)
-                .OfCategory(bic)
-                .WhereElementIsNotElementType();
-
-            foreach (Element element in collector)
-            {
-                string number = NumberingHelper.GetNumber(element);
-
-                if (!string.IsNullOrEmpty(number) && !data.ContainsKey(number))
-                {
-                    data[number] = element.Id;
-                }
-            }
-
-            return data;
-        }
-
-        private string GetCategoryName(Document doc, CategoryOption option)
-        {
-            try
-            {
-                Category cat = doc.Settings.Categories.get_Item(option.Category);
-                if (cat != null)
-                    return cat.Name;
-            }
-            catch { }
-
-            return option.Label;
-        }
-
-        private bool IsModelView(View view)
-        {
-            if (view == null)
-                return false;
-
-            try
-            {
-                ViewType[] badViewTypes = new[]
-                {
-                    ViewType.DrawingSheet,
-                    ViewType.Schedule,
-                    ViewType.ProjectBrowser,
-                    ViewType.SystemBrowser,
-                    ViewType.Legend
-                };
-
-                return !badViewTypes.Contains(view.ViewType);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // Selection filter class
-        private class CategorySelectionFilter : ISelectionFilter
-        {
-            private BuiltInCategory _category;
-
-            public CategorySelectionFilter(BuiltInCategory category)
-            {
-                _category = category;
-            }
-
-            public bool AllowElement(Element element)
+            var ogs = new OverrideGraphicSettings();
+            foreach (var id in elementIds)
             {
                 try
                 {
-                    if (element.Category == null)
-                        return false;
-
-                    return (BuiltInCategory)element.Category.Id.Value == _category;
+                    view.SetElementOverrides(id, ogs);
                 }
                 catch
                 {
-                    return false;
+                    // Ignore failures
                 }
+            }
+        }
+
+        private string IncrementString(string value, int step)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            var result = value;
+            for (int i = 0; i < step; i++)
+            {
+                var match = Regex.Match(result, @"(\d+)$");
+                if (!match.Success)
+                    return result;
+
+                var numberText = match.Groups[1].Value;
+                var prefix = result.Substring(0, match.Groups[1].Index);
+
+                if (!int.TryParse(numberText, out int number))
+                    return result;
+
+                var nextNumber = number + 1;
+                var width = numberText.Length;
+
+                result = prefix + nextNumber.ToString().PadLeft(width, '0');
+            }
+
+            return result;
+        }
+
+        private class CategoryOption
+        {
+            public string Label { get; set; }
+            public BuiltInCategory Category { get; set; }
+        }
+
+        private class CategorySelectionFilter : ISelectionFilter
+        {
+            private readonly BuiltInCategory _targetCategory;
+
+            public CategorySelectionFilter(BuiltInCategory targetCategory)
+            {
+                _targetCategory = targetCategory;
+            }
+
+            public bool AllowElement(Element elem)
+            {
+                return elem?.Category?.Id.IntegerValue == (int)_targetCategory;
             }
 
             public bool AllowReference(Reference reference, XYZ position)
             {
-                return true;
+                return false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Simple WPF input dialog for text input
+    /// </summary>
+    public class InputDialog : System.Windows.Window
+    {
+        private System.Windows.Controls.TextBox _textBox;
+
+        public string InputText => _textBox.Text;
+
+        public InputDialog(string title, string prompt, string defaultText = "")
+        {
+            Title = title;
+            Width = 400;
+            Height = 150;
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen;
+            ResizeMode = System.Windows.ResizeMode.NoResize;
+
+            var grid = new System.Windows.Controls.Grid();
+            grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+            grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = System.Windows.GridLength.Auto });
+
+            var stackPanel = new System.Windows.Controls.StackPanel { Margin = new System.Windows.Thickness(10) };
+            
+            var label = new System.Windows.Controls.Label { Content = prompt };
+            stackPanel.Children.Add(label);
+
+            _textBox = new System.Windows.Controls.TextBox { Text = defaultText, Margin = new System.Windows.Thickness(0, 5, 0, 0) };
+            stackPanel.Children.Add(_textBox);
+
+            System.Windows.Controls.Grid.SetRow(stackPanel, 0);
+            grid.Children.Add(stackPanel);
+
+            var buttonPanel = new System.Windows.Controls.StackPanel 
+            { 
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                Margin = new System.Windows.Thickness(10)
+            };
+
+            var okButton = new System.Windows.Controls.Button 
+            { 
+                Content = "OK", 
+                Width = 75, 
+                Margin = new System.Windows.Thickness(0, 0, 5, 0),
+                IsDefault = true
+            };
+            okButton.Click += (s, e) => { DialogResult = true; Close(); };
+            buttonPanel.Children.Add(okButton);
+
+            var cancelButton = new System.Windows.Controls.Button 
+            { 
+                Content = "Cancel", 
+                Width = 75,
+                IsCancel = true
+            };
+            cancelButton.Click += (s, e) => { DialogResult = false; Close(); };
+            buttonPanel.Children.Add(cancelButton);
+
+            System.Windows.Controls.Grid.SetRow(buttonPanel, 1);
+            grid.Children.Add(buttonPanel);
+
+            Content = grid;
+
+            _textBox.Focus();
+            _textBox.SelectAll();
         }
     }
 }

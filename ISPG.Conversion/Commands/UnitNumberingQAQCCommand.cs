@@ -1,160 +1,186 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using ISPG.Conversion.Helpers;
 
 namespace ISPG.Conversion.Commands
 {
+    /// <summary>
+    /// Unit Numbering QA/QC: find missing numbers, duplicates, skipped numbers
+    /// </summary>
     [Transaction(TransactionMode.ReadOnly)]
+    [Regeneration(RegenerationOption.Manual)]
     public class UnitNumberingQAQCCommand : IExternalCommand
     {
-        private const string FAMILY_NAME_CONTAINS_UNIT = "UX5_Unit";
-        private const string FAMILY_NAME_CONTAINS_PARKING = "UX5 Parking Space";
-
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            Document doc = commandData.Application.ActiveUIDocument.Document;
+            var doc = commandData.Application.ActiveUIDocument.Document;
 
             try
             {
-                List<ElementId> idList = new List<ElementId>();
-                List<string> numberList = new List<string>();
-                int missingCount = 0;
+                var report = new StringBuilder();
+                report.AppendLine("UNIT NUMBERING QA/QC REPORT");
+                report.AppendLine("==========================================");
+                report.AppendLine();
 
-                // Collect family instances
-                FilteredElementCollector collector = new FilteredElementCollector(doc)
+                // Collect all UX5_Unit and UX5 Parking Space instances
+                var idList = new List<ElementId>();
+                var instances = new FilteredElementCollector(doc)
                     .OfClass(typeof(FamilyInstance))
-                    .WhereElementIsNotElementType();
+                    .WhereElementIsNotElementType()
+                    .Cast<FamilyInstance>();
 
-                foreach (FamilyInstance famInst in collector)
+                foreach (var inst in instances)
                 {
-                    string familyName = famInst.Symbol.FamilyName;
-
-                    if (familyName.Contains(FAMILY_NAME_CONTAINS_UNIT) || 
-                        familyName.Contains(FAMILY_NAME_CONTAINS_PARKING))
+                    try
                     {
-                        // Skip nested instances
-                        if (famInst.SuperComponent == null)
+                        var familyName = inst.Symbol?.Family?.Name;
+                        if (string.IsNullOrEmpty(familyName))
+                            continue;
+
+                        if ((familyName.Contains("UX5_Unit") || familyName.Contains("UX5 Parking Space")) 
+                            && inst.SuperComponent == null)
                         {
-                            idList.Add(famInst.Id);
+                            idList.Add(inst.Id);
                         }
+                    }
+                    catch
+                    {
+                        // Ignore failures
                     }
                 }
 
-                // Check for missing and collect numbers
-                List<string> missingElements = new List<string>();
+                report.AppendLine($"Total elements found: {idList.Count}");
+                report.AppendLine();
 
-                foreach (ElementId id in idList)
+                // Check for missing numbers
+                var missingList = new List<string>();
+                var numberList = new List<string>();
+
+                foreach (var id in idList)
                 {
-                    Element unit = doc.GetElement(id);
-                    string number = NumberingHelper.GetNumber(unit);
+                    var unit = doc.GetElement(id);
+                    var numberParam = unit.LookupParameter("Info Unit Number");
+                    
+                    if (numberParam == null)
+                        continue;
 
-                    if (string.IsNullOrEmpty(number))
+                    var numberValue = numberParam.AsString();
+
+                    if (string.IsNullOrEmpty(numberValue))
                     {
-                        missingElements.Add($"{unit.Name}: {NumberingHelper.GetElementIdValue(unit.Id)}");
-                        missingCount++;
+                        missingList.Add($"{unit.Name}: {id.IntegerValue}");
                     }
                     else
                     {
-                        numberList.Add(number);
+                        numberList.Add(numberValue);
                     }
                 }
 
+                // Report missing numbers
+                report.AppendLine("------------------------------------------");
+                report.AppendLine($"Missing unit numbers: {missingList.Count}");
+                if (missingList.Count > 0)
+                {
+                    foreach (var item in missingList)
+                    {
+                        report.AppendLine($"  {item}");
+                    }
+                }
+                report.AppendLine("------------------------------------------");
+                report.AppendLine();
+
                 // Find duplicates
-                var duplicates = numberList.GroupBy(x => x)
+                var duplicates = numberList
+                    .GroupBy(x => x)
                     .Where(g => g.Count() > 1)
                     .Select(g => g.Key)
                     .ToList();
 
-                // Find skipped numbers
-                List<string> skippedNumbers = new List<string>();
-                numberList.Sort();
-
-                foreach (string number in numberList.ToList())
-                {
-                    string nextNumber = NumberingHelper.IncrementString(number, 1);
-
-                    if (!numberList.Contains(nextNumber))
-                    {
-                        string nextNextNumber = NumberingHelper.IncrementString(nextNumber, 1);
-
-                        if (numberList.Contains(nextNextNumber))
-                        {
-                            if (!skippedNumbers.Contains(nextNumber))
-                            {
-                                skippedNumbers.Add(nextNumber);
-                            }
-                        }
-                    }
-                }
-
-                // Build report
-                string report = "UNIT NUMBERING QA/QC REPORT\n";
-                report += "==========================================\n\n";
-
-                report += $"Total elements checked: {idList.Count}\n\n";
-
-                report += $"Missing unit numbers: {missingCount}\n";
-                if (missingElements.Count > 0)
-                {
-                    report += "Elements without numbers:\n";
-                    foreach (string elem in missingElements.Take(20))
-                    {
-                        report += $"  - {elem}\n";
-                    }
-                    if (missingElements.Count > 20)
-                    {
-                        report += $"  ... and {missingElements.Count - 20} more\n";
-                    }
-                }
-                report += "\n";
-
-                report += "Duplicate unit numbers:\n";
+                report.AppendLine("------------------------------------------");
+                report.AppendLine("Unit numbers that exist more than once:");
                 if (duplicates.Count > 0)
                 {
-                    foreach (string dup in duplicates)
+                    foreach (var dup in duplicates)
                     {
-                        report += $"  - {dup}\n";
+                        report.AppendLine($"  {dup}");
                     }
                 }
                 else
                 {
-                    report += "  None found\n";
+                    report.AppendLine("  (none)");
                 }
-                report += "\n";
+                report.AppendLine("------------------------------------------");
+                report.AppendLine();
 
-                report += "Skipped unit numbers:\n";
-                if (skippedNumbers.Count > 0)
+                // Find skipped numbers
+                var skippedList = new HashSet<string>();
+
+                foreach (var number in numberList)
                 {
-                    foreach (string skipped in skippedNumbers.Take(20))
+                    var nextNumber = IncrementString(number);
+                    if (numberList.Contains(nextNumber))
+                        continue;
+
+                    var nextNextNumber = IncrementString(nextNumber);
+                    if (numberList.Contains(nextNextNumber))
                     {
-                        report += $"  - {skipped}\n";
+                        skippedList.Add(nextNumber);
                     }
-                    if (skippedNumbers.Count > 20)
+                }
+
+                var skippedSorted = skippedList.OrderBy(x => x).ToList();
+
+                report.AppendLine("------------------------------------------");
+                report.AppendLine("Unit numbers that appear to have been skipped:");
+                if (skippedSorted.Count > 0)
+                {
+                    foreach (var skipped in skippedSorted)
                     {
-                        report += $"  ... and {skippedNumbers.Count - 20} more\n";
+                        report.AppendLine($"  {skipped}");
                     }
                 }
                 else
                 {
-                    report += "  None found\n";
+                    report.AppendLine("  (none)");
                 }
+                report.AppendLine("------------------------------------------");
 
                 // Show report
-                TaskDialog td = new TaskDialog("Unit Numbering QA/QC");
-                td.MainContent = report;
-                td.Show();
+                TaskDialog.Show("Unit Numbering QA/QC", report.ToString());
 
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
-                message = ex.ToString();
+                message = ex.Message;
                 return Result.Failed;
             }
+        }
+
+        private string IncrementString(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            var match = Regex.Match(value, @"(\d+)$");
+            if (!match.Success)
+                return value;
+
+            var numberText = match.Groups[1].Value;
+            var prefix = value.Substring(0, match.Groups[1].Index);
+
+            if (!int.TryParse(numberText, out int number))
+                return value;
+
+            var nextNumber = number + 1;
+            var width = numberText.Length;
+
+            return prefix + nextNumber.ToString().PadLeft(width, '0');
         }
     }
 }
