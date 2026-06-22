@@ -324,40 +324,34 @@ namespace ISPG.Conversion.Core
             var classification = new ClassificationInfo();
 
             // Climate
-            GetBooleanClassification(instance, symbol, ParameterHelper.CLIMATE_PARAMS,
-                out classification.ClimateRaw, out classification.ClimateString,
-                out classification.Climate, out classification.ClimateSource,
-                out classification.ClimateParam);
+            (classification.ClimateRaw, classification.ClimateString, classification.Climate, 
+             classification.ClimateSource, classification.ClimateParam) = 
+                GetBooleanClassification(instance, symbol, ParameterHelper.CLIMATE_PARAMS);
 
             // Climate Heat Only
-            GetBooleanClassification(instance, symbol, ParameterHelper.CLIMATE_HEAT_ONLY_PARAMS,
-                out classification.ClimateHeatOnlyRaw, out classification.ClimateHeatOnlyString,
-                out classification.ClimateHeatOnly, out classification.ClimateHeatOnlySource,
-                out classification.ClimateHeatOnlyParam);
+            (classification.ClimateHeatOnlyRaw, classification.ClimateHeatOnlyString, classification.ClimateHeatOnly,
+             classification.ClimateHeatOnlySource, classification.ClimateHeatOnlyParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.CLIMATE_HEAT_ONLY_PARAMS);
 
             // DriveUp
-            GetBooleanClassification(instance, symbol, ParameterHelper.DRIVEUP_PARAMS,
-                out classification.DriveupRaw, out classification.DriveupString,
-                out classification.Driveup, out classification.DriveupSource,
-                out classification.DriveupParam);
+            (classification.DriveupRaw, classification.DriveupString, classification.Driveup,
+             classification.DriveupSource, classification.DriveupParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.DRIVEUP_PARAMS);
 
             // Locker
-            GetBooleanClassification(instance, symbol, ParameterHelper.LOCKER_PARAMS,
-                out classification.LockerRaw, out classification.LockerString,
-                out classification.Locker, out classification.LockerSource,
-                out classification.LockerParam);
+            (classification.LockerRaw, classification.LockerString, classification.Locker,
+             classification.LockerSource, classification.LockerParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.LOCKER_PARAMS);
 
             // Ground Access
-            GetBooleanClassification(instance, symbol, ParameterHelper.GROUND_ACCESS_PARAMS,
-                out classification.GroundAccessRaw, out classification.GroundAccessString,
-                out classification.GroundAccess, out classification.GroundAccessSource,
-                out classification.GroundAccessParam);
+            (classification.GroundAccessRaw, classification.GroundAccessString, classification.GroundAccess,
+             classification.GroundAccessSource, classification.GroundAccessParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.GROUND_ACCESS_PARAMS);
 
             // Accessible
-            GetBooleanClassification(instance, symbol, ParameterHelper.ACCESSIBLE_PARAMS,
-                out classification.AccessibleRaw, out classification.AccessibleString,
-                out classification.Accessible, out classification.AccessibleSource,
-                out classification.AccessibleParam);
+            (classification.AccessibleRaw, classification.AccessibleString, classification.Accessible,
+             classification.AccessibleSource, classification.AccessibleParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.ACCESSIBLE_PARAMS);
 
             // Obstructions
             GetBooleanClassification(instance, symbol, ParameterHelper.OBSTRUCTIONS_PARAMS,
@@ -401,16 +395,11 @@ namespace ISPG.Conversion.Core
         /// <summary>
         /// Helper to get boolean classification field
         /// </summary>
-        private void GetBooleanClassification(FamilyInstance instance, FamilySymbol symbol, string[] paramNames,
-            out object raw, out string str, out bool? boolean, out string source, out string param)
+        private (object raw, string str, bool? boolean, string source, string param) GetBooleanClassification(
+            FamilyInstance instance, FamilySymbol symbol, string[] paramNames)
         {
             var (value, valueString, paramSource, paramName) = ParameterHelper.GetFirstParamValue(instance, symbol, paramNames);
-
-            raw = value;
-            str = valueString;
-            boolean = ParameterHelper.Boolish(value);
-            source = paramSource;
-            param = paramName;
+            return (value, valueString, ParameterHelper.Boolish(value), paramSource, paramName);
         }
 
         /// <summary>
