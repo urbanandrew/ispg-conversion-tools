@@ -25,7 +25,7 @@ jobs:
       run: nuget restore ISPG.Conversion.sln
     
     - name: Build solution (Revit 2025)
-      run: msbuild ISPG.Conversion.sln /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=bin\Release\net48
+      run: msbuild ISPG.Conversion.sln /p:Configuration=Release /p:Platform=x64
     
     - name: Create installer package
       run: |
@@ -34,7 +34,7 @@ jobs:
         New-Item -ItemType Directory -Force -Path installer\Revit2025
         
         # Copy built DLL
-        Copy-Item "ISPG.Conversion\bin\Release\net48\ISPG.Conversion.dll" "installer\Revit2025\"
+        Copy-Item "ISPG.Conversion\bin\x64\Release\net48\ISPG.Conversion.dll" "installer\Revit2025\"
         
         # Create .addin manifest
         $addinContent = @"
