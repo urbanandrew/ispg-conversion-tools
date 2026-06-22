@@ -354,40 +354,34 @@ namespace ISPG.Conversion.Core
                 GetBooleanClassification(instance, symbol, ParameterHelper.ACCESSIBLE_PARAMS);
 
             // Obstructions
-            GetBooleanClassification(instance, symbol, ParameterHelper.OBSTRUCTIONS_PARAMS,
-                out classification.ObstructionsRaw, out classification.ObstructionsString,
-                out classification.Obstructions, out classification.ObstructionsSource,
-                out classification.ObstructionsParam);
+            (classification.ObstructionsRaw, classification.ObstructionsString, classification.Obstructions,
+             classification.ObstructionsSource, classification.ObstructionsParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.OBSTRUCTIONS_PARAMS);
 
             // Offline
-            GetBooleanClassification(instance, symbol, ParameterHelper.OFFLINE_PARAMS,
-                out classification.OfflineRaw, out classification.OfflineString,
-                out classification.Offline, out classification.OfflineSource,
-                out classification.OfflineParam);
+            (classification.OfflineRaw, classification.OfflineString, classification.Offline,
+             classification.OfflineSource, classification.OfflineParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.OFFLINE_PARAMS);
 
             // Portable
-            GetBooleanClassification(instance, symbol, ParameterHelper.PORTABLE_PARAMS,
-                out classification.PortableRaw, out classification.PortableString,
-                out classification.Portable, out classification.PortableSource,
-                out classification.PortableParam);
+            (classification.PortableRaw, classification.PortableString, classification.Portable,
+             classification.PortableSource, classification.PortableParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.PORTABLE_PARAMS);
 
             // Stack Bottom
-            GetBooleanClassification(instance, symbol, ParameterHelper.STACK_BOTTOM_PARAMS,
-                out classification.StackBottomRaw, out classification.StackBottomString,
-                out classification.StackBottom, out classification.StackBottomSource,
-                out classification.StackBottomParam);
+            (classification.StackBottomRaw, classification.StackBottomString, classification.StackBottom,
+             classification.StackBottomSource, classification.StackBottomParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.STACK_BOTTOM_PARAMS);
 
             // Stack Top
-            GetBooleanClassification(instance, symbol, ParameterHelper.STACK_TOP_PARAMS,
-                out classification.StackTopRaw, out classification.StackTopString,
-                out classification.StackTop, out classification.StackTopSource,
-                out classification.StackTopParam);
+            (classification.StackTopRaw, classification.StackTopString, classification.StackTop,
+             classification.StackTopSource, classification.StackTopParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.STACK_TOP_PARAMS);
 
             // WalkUp
-            GetBooleanClassification(instance, symbol, ParameterHelper.WALKUP_PARAMS,
-                out classification.WalkupRaw, out classification.WalkupString,
-                out classification.Walkup, out classification.WalkupSource,
-                out classification.WalkupParam);
+            (classification.WalkupRaw, classification.WalkupString, classification.Walkup,
+             classification.WalkupSource, classification.WalkupParam) =
+                GetBooleanClassification(instance, symbol, ParameterHelper.WALKUP_PARAMS);
 
             return classification;
         }
