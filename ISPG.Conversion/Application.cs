@@ -84,68 +84,68 @@ namespace ISPG.Conversion
 
             conversionPanel.AddSeparator();
 
-            // Import buttons
+            // Export buttons (NEW JSON-based)
             AddPushButton(
                 conversionPanel,
-                "ImportUnitsLegacy",
-                "Import\nUnits",
-                "ISPG.Conversion.Commands.ImportUnitsLegacyCommand",
+                "ExportUnits",
+                "Export\\nUnits",
+                "ISPG.Conversion.Commands.Export.ExportUnitsCommand",
                 assemblyPath,
-                "Import units from CSV export",
-                "icon_import_units.png"
-            );
-
-            AddPushButton(
-                conversionPanel,
-                "ImportParkingLegacy",
-                "Import\nParking",
-                "ISPG.Conversion.Commands.ImportParkingLegacyCommand",
-                assemblyPath,
-                "Import parking spaces from CSV export",
-                "icon_import_parking.png"
-            );
-
-            AddPushButton(
-                conversionPanel,
-                "ImportShellLegacy",
-                "Import\nShell",
-                "ISPG.Conversion.Commands.ImportShellLegacyCommand",
-                assemblyPath,
-                "Import shell/building data from CSV export",
-                "icon_import_shell.png"
-            );
-
-            conversionPanel.AddSeparator();
-
-            // Export buttons
-            AddPushButton(
-                conversionPanel,
-                "ExportUnitsLegacy",
-                "Export\nUnits",
-                "ISPG.Conversion.Commands.ExportUnitsLegacyCommand",
-                assemblyPath,
-                "Export units to legacy format",
+                "Export units to JSON",
                 "icon_export_units.png"
             );
 
             AddPushButton(
                 conversionPanel,
-                "ExportParkingLegacy",
-                "Export\nParking",
-                "ISPG.Conversion.Commands.ExportParkingLegacyCommand",
+                "ExportParking",
+                "Export\\nParking",
+                "ISPG.Conversion.Commands.Export.ExportParkingCommand",
                 assemblyPath,
-                "Export parking to legacy format",
+                "Export parking to JSON",
                 "icon_export_parking.png"
             );
 
             AddPushButton(
                 conversionPanel,
-                "ExportShellLegacy",
-                "Export\nShell",
-                "ISPG.Conversion.Commands.ExportShellLegacyCommand",
+                "ExportShell",
+                "Export\\nShell",
+                "ISPG.Conversion.Commands.Export.ExportShellCommand",
                 assemblyPath,
-                "Export shell data to legacy format",
+                "Export shell data to JSON",
                 "icon_export_shell.png"
+            );
+
+            conversionPanel.AddSeparator();
+
+            // Import buttons (NEW JSON-based)
+            AddPushButton(
+                conversionPanel,
+                "ImportUnits",
+                "Import\\nUnits",
+                "ISPG.Conversion.Commands.Import.ImportUnitsCommand",
+                assemblyPath,
+                "Import units from JSON export",
+                "icon_import_units.png"
+            );
+
+            AddPushButton(
+                conversionPanel,
+                "ImportParking",
+                "Import\\nParking",
+                "ISPG.Conversion.Commands.Import.ImportParkingCommand",
+                assemblyPath,
+                "Import parking from JSON export",
+                "icon_import_parking.png"
+            );
+
+            AddPushButton(
+                conversionPanel,
+                "ImportShell",
+                "Import\\nShell",
+                "ISPG.Conversion.Commands.Import.ImportShellCommand",
+                assemblyPath,
+                "Import shell data from JSON export",
+                "icon_import_shell.png"
             );
         }
 
