@@ -13,7 +13,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
@@ -126,7 +126,7 @@ jobs:
         Compress-Archive -Path installer\* -DestinationPath ISPG-Conversion-Installer.zip
     
     - name: Upload installer as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ISPG-Conversion-Installer
         path: ISPG-Conversion-Installer.zip
