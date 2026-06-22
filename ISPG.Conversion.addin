@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>ISPG Conversion Tools</Name>
+    <Assembly>ISPG.Conversion.dll</Assembly>
+    <AddInId>F8C6D928-9E4B-4B8A-8D3F-2C1E4A6B9D7E</AddInId>
+    <FullClassName>ISPG.Conversion.Application</FullClassName>
+    <VendorId>ISPG</VendorId>
+    <VendorDescription>Insite Property Group</VendorDescription>
+  </AddIn>
+</RevitAddIns>
