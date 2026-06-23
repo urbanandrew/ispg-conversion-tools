@@ -141,7 +141,7 @@ namespace ISPG.Conversion.Core
             double rotationRadians = GetRotation(unit);
 
             // Find level
-            string levelName = GetNested<string>(unit, new[] { "placement", "level_name" });
+            string levelName = unit.Placement?.LevelName;
             var level = LevelHelper.FindLevel(_doc, levelName, _customLevelMap);
 
             if (level == null)
@@ -239,7 +239,7 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private XYZ GetPoint(UnitRecord unit)
         {
-            var pointData = GetNested<PointData>(unit, new[] { "placement", "location", "point" });
+            var pointData = unit.Placement?.Location?.Point;
             if (pointData == null) return null;
 
             try
@@ -257,7 +257,7 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private double GetRotation(UnitRecord unit)
         {
-            var rotation = GetNested<double?>(unit, new[] { "placement", "location", "rotation_radians" });
+            var rotation = unit.Placement?.Location?.RotationRadians;
             return rotation ?? 0.0;
         }
 
@@ -281,14 +281,10 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private string GetSourceOrigin(UnitRecord unit)
         {
-            // Try explicit source origin fields
-            var paths = new[]
-            {
-                new[] { "source", "source_origin" },
-                new[] { "migration_assumptions", "source_origin" },
-                new[] { "migration_assumptions", "old_origin" }
-            };
-            var explicitOrigin = GetFirstNestedString(unit, paths);
+            // Try explicit source origin fields (in priority order)
+            var explicitOrigin = unit.Source?.SourceOrigin 
+                ?? unit.MigrationAssumptions?.SourceOrigin 
+                ?? unit.MigrationAssumptions?.OldOrigin;
 
             if (!string.IsNullOrEmpty(explicitOrigin))
                 return NormalizeOrigin(explicitOrigin);
@@ -309,7 +305,7 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private string GetTargetOrigin(UnitRecord unit)
         {
-            var explicitOrigin = GetNested<string>(unit, new[] { "migration_assumptions", "target_origin" });
+            var explicitOrigin = unit.MigrationAssumptions?.TargetOrigin;
             if (!string.IsNullOrEmpty(explicitOrigin))
                 return NormalizeOrigin(explicitOrigin);
 
@@ -339,8 +335,13 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private double? GetLengthFeet(UnitRecord unit, string dimension)
         {
-            var path = new[] { "dimensions", $"{dimension}_raw" };
-            return GetNested<double?>(unit, path);
+            switch (dimension.ToLower())
+            {
+                case "width": return unit.Dimensions?.WidthRaw;
+                case "depth": return unit.Dimensions?.DepthRaw;
+                case "height": return unit.Dimensions?.HeightRaw;
+                default: return null;
+            }
         }
 
         /// <summary>
@@ -348,7 +349,7 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private double GetImportHeight(UnitRecord unit)
         {
-            bool isLocker = GetNested<bool?>(unit, new[] { "classification", "locker" }) == true;
+            bool isLocker = unit.Classification?.Locker == true;
 
             if (isLocker)
                 return 3.0; // Lockers are 3' tall
@@ -362,7 +363,7 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private double GetImportOffset(UnitRecord unit)
         {
-            bool isLocker = GetNested<bool?>(unit, new[] { "classification", "locker" }) == true;
+            bool isLocker = unit.Classification?.Locker == true;
 
             if (isLocker)
                 return 5.0; // Lockers offset 5' from level
@@ -408,8 +409,8 @@ namespace ISPG.Conversion.Core
         private void SetUnitParams(FamilyInstance instance, UnitRecord unit)
         {
             // Identity
-            SetParam(instance, "building_number", GetNested<object>(unit, new[] { "identity", "building_number" }));
-            SetParam(instance, "unit_number", GetNested<object>(unit, new[] { "identity", "unit_number" }));
+            SetParam(instance, "building_number", unit.Identity?.BuildingNumber);
+            SetParam(instance, "unit_number", unit.Identity?.UnitNumber);
 
             // Dimensions
             SetParam(instance, "width", GetLengthFeet(unit, "width"));
@@ -417,16 +418,20 @@ namespace ISPG.Conversion.Core
             SetParam(instance, "height", GetImportHeight(unit));
 
             // Classification (boolean fields)
-            string[] boolKeys = {
-                "climate", "climate_heat_only", "driveup", "locker",
-                "ground_access", "accessible", "obstructions", "offline",
-                "portable", "stack_bottom", "stack_top", "walkup"
-            };
-
-            foreach (var key in boolKeys)
+            if (unit.Classification != null)
             {
-                var value = GetNested<bool?>(unit, new[] { "classification", key });
-                SetParam(instance, key, BoolToRevit(value));
+                SetParam(instance, "climate", BoolToRevit(unit.Classification.Climate));
+                SetParam(instance, "climate_heat_only", BoolToRevit(unit.Classification.ClimateHeatOnly));
+                SetParam(instance, "driveup", BoolToRevit(unit.Classification.Driveup));
+                SetParam(instance, "locker", BoolToRevit(unit.Classification.Locker));
+                SetParam(instance, "ground_access", BoolToRevit(unit.Classification.GroundAccess));
+                SetParam(instance, "accessible", BoolToRevit(unit.Classification.Accessible));
+                SetParam(instance, "obstructions", BoolToRevit(unit.Classification.Obstructions));
+                SetParam(instance, "offline", BoolToRevit(unit.Classification.Offline));
+                SetParam(instance, "portable", BoolToRevit(unit.Classification.Portable));
+                SetParam(instance, "stack_bottom", BoolToRevit(unit.Classification.StackBottom));
+                SetParam(instance, "stack_top", BoolToRevit(unit.Classification.StackTop));
+                SetParam(instance, "walkup", BoolToRevit(unit.Classification.Walkup));
             }
         }
 
@@ -530,7 +535,7 @@ namespace ISPG.Conversion.Core
             if (point == null)
                 throw new Exception("Could not determine insertion point");
 
-            string levelName = GetNested<string>(unit, new[] { "placement", "level_name" });
+            string levelName = unit.Placement?.LevelName;
             var level = LevelHelper.FindLevel(_doc, levelName, _customLevelMap);
 
             if (level == null)
@@ -542,9 +547,9 @@ namespace ISPG.Conversion.Core
         /// </summary>
         private string GetUnitLabel(UnitRecord unit)
         {
-            var unitNumber = GetNested<object>(unit, new[] { "identity", "unit_number" });
+            var unitNumber = unit.Identity?.UnitNumber;
             var elementId = unit.Source?.ElementId;
-            var levelName = GetNested<string>(unit, new[] { "placement", "level_name" });
+            var levelName = unit.Placement?.LevelName;
 
             return $"Unit {unitNumber}, ID {elementId}, Level {levelName}";
         }
