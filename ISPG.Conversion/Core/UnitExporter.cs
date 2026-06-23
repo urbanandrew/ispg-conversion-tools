@@ -75,13 +75,13 @@ namespace ISPG.Conversion.Core
                         records.Add(record);
 
                         // Count match reasons
-                        string reason = record.source.MatchReason ?? "unknown";
+                        string reason = record.Source.MatchReason ?? "unknown";
                         if (!matchReasonCounts.ContainsKey(reason))
                             matchReasonCounts[reason] = 0;
                         matchReasonCounts[reason]++;
 
                         // Count source origins
-                        string sourceOrigin = record.source.sourceOrigin ?? "unknown";
+                        string sourceOrigin = record.Source.sourceOrigin ?? "unknown";
                         if (!sourceOriginCounts.ContainsKey(sourceOrigin))
                             sourceOriginCounts[sourceOrigin] = 0;
                         sourceOriginCounts[sourceOrigin]++;
@@ -176,8 +176,8 @@ namespace ISPG.Conversion.Core
                 parsedDepth = parsed.Item2;
             }
 
-            double? finalWidth = width.value ?? parsedWidth;
-            double? finalDepth = depth.value ?? parsedDepth;
+            double? finalWidth = (width.value as double?) ?? parsedWidth;
+            double? finalDepth = (depth.value as double?) ?? parsedDepth;
 
             // Get level info
             string levelName = null;
@@ -260,7 +260,7 @@ namespace ISPG.Conversion.Core
                 },
                 Identity = new UnitIdentity
                 {
-                    BuildingNumber = buildingNumber.IntValue,
+                    BuildingNumber = buildingNumber.value,
                     BuildingNumberString = buildingNumber.valueString,
                     BuildingNumberSource = buildingNumber.source,
                     BuildingNumberParam = buildingNumber.paramName,
