@@ -385,14 +385,23 @@ namespace ISPG.Conversion.Core
                 var bbox = instance.get_BoundingBox(null);
                 if (bbox != null)
                 {
+                    var min = bbox.Min;
+                    var max = bbox.Max;
+                    var size = max - min;
+                    
                     return new BoundingBoxData
                     {
-                        MinXFeet = bbox.Min.X,
-                        MinYFeet = bbox.Min.Y,
-                        MinZFeet = bbox.Min.Z,
-                        MaxXFeet = bbox.Max.X,
-                        MaxYFeet = bbox.Max.Y,
-                        MaxZFeet = bbox.Max.Z
+                        Min = new CoordData { XFeet = min.X, YFeet = min.Y, ZFeet = min.Z },
+                        Max = new CoordData { XFeet = max.X, YFeet = max.Y, ZFeet = max.Z },
+                        Size = new SizeData
+                        {
+                            XFeet = size.X,
+                            YFeet = size.Y,
+                            ZFeet = size.Z,
+                            XInches = size.X * 12,
+                            YInches = size.Y * 12,
+                            ZInches = size.Z * 12
+                        }
                     };
                 }
             }
