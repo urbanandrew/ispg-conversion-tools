@@ -35,8 +35,8 @@ namespace ISPG.Conversion.Commands.Export
                 // Ensure C:\Temp exists
                 Directory.CreateDirectory(@"C:\Temp");
 
-                // Export
-                var exporter = new JsonExporter(doc, "shell");
+                // Export using dedicated shell exporter
+                var exporter = new ShellExporter(doc);
                 exporter.Export(shellInstances, outputPath);
 
                 // Show success message
