@@ -37,7 +37,7 @@ namespace ISPG.Conversion.Core
 
         private UnitExportPayload BuildPayload(IEnumerable<FamilyInstance> elements)
         {
-            var records = new List<UnitRecord>();
+            var records = new List<UnitExportRecord>();
             var skipped = new List<SkippedElement>();
             var matchReasonCounts = new Dictionary<string, int>();
             var sourceOriginCounts = new Dictionary<string, int>();
@@ -137,7 +137,7 @@ namespace ISPG.Conversion.Core
             return null;
         }
 
-        private UnitRecord BuildUnitRecord(FamilyInstance instance, string familyName, string typeName, string matchReason)
+        private UnitExportRecord BuildUnitRecord(FamilyInstance instance, string familyName, string typeName)
         {
             var symbol = instance.Symbol;
 
@@ -219,7 +219,7 @@ namespace ISPG.Conversion.Core
             string sourceOrigin = GetSourceOrigin(familyName, typeName);
             string targetOrigin = GetTargetOrigin(familyName, typeName);
 
-            return new UnitRecord
+            return new UnitExportRecord
             {
                 Source = new SourceData
                 {

@@ -12,7 +12,7 @@ namespace ISPG.Conversion.Models
         public ExportMetadata ExportMetadata { get; set; }
 
         [JsonProperty("units")]
-        public List<UnitRecord> Units { get; set; }
+        public List<UnitExportRecord> Units { get; set; }
 
         [JsonProperty("skipped")]
         public List<SkippedElement> Skipped { get; set; }
@@ -21,7 +21,7 @@ namespace ISPG.Conversion.Models
         public ExportSummary Summary { get; set; }
     }
 
-    public class UnitRecord
+    public class UnitExportRecord
     {
         [JsonProperty("source")]
         public SourceData Source { get; set; }
