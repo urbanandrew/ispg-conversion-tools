@@ -90,13 +90,13 @@ namespace ISPG.Conversion.Core
                         roleCounts[role]++;
 
                         // Count source kinds
-                        string sourceKind = record.Source.SourceKind ?? "unknown";
+                        string sourceKind = record.source.sourceKind ?? "unknown";
                         if (!sourceKindCounts.ContainsKey(sourceKind))
                             sourceKindCounts[sourceKind] = 0;
                         sourceKindCounts[sourceKind]++;
 
                         // Count source origins
-                        string sourceOrigin = record.Source.SourceOrigin ?? "unknown";
+                        string sourceOrigin = record.source.sourceOrigin ?? "unknown";
                         if (!sourceOriginCounts.ContainsKey(sourceOrigin))
                             sourceOriginCounts[sourceOrigin] = 0;
                         sourceOriginCounts[sourceOrigin]++;
@@ -145,7 +145,7 @@ namespace ISPG.Conversion.Core
             {
                 // Check Type Wall parameter
                 var typeWall = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { "Type Wall" });
-                if (ParameterHelper.Boolish(typeWall.RawValue))
+                if (ParameterHelper.Boolish(typeWall.value))
                     return "wall";
                 return "shell";
             }
@@ -205,15 +205,15 @@ namespace ISPG.Conversion.Core
             // Parse dimensions from type name if not found in parameters
             double? parsedWidth = null;
             double? parsedDepth = null;
-            if (width.Value == null || depth.Value == null)
+            if (width.value == null || depth.value == null)
             {
                 var parsed = ParseSizeFromTypeName(typeName);
                 parsedWidth = parsed.Item1;
                 parsedDepth = parsed.Item2;
             }
 
-            double? finalWidth = width.Value ?? parsedWidth;
-            double? finalDepth = depth.Value ?? parsedDepth;
+            double? finalWidth = width.value ?? parsedWidth;
+            double? finalDepth = depth.value ?? parsedDepth;
 
             // Get level info
             string levelName = null;
@@ -228,9 +228,20 @@ namespace ISPG.Conversion.Core
             catch { }
 
             // Get level offset
-            var levelOffset = ParameterHelper.GetParameterValueAsDouble(instance, "Level Offset");
-            string levelOffsetSource = levelOffset.HasValue ? "Level Offset" : null;
-            string levelOffsetString = levelOffset.HasValue ? levelOffset.Value.ToString() : null;
+            double? levelOffset = null;
+            string levelOffsetSource = null;
+            string levelOffsetString = null;
+            
+            if (levelName != null)
+            {
+                var offsetParam = instance.get_Parameter(BuiltInParameter.INSTANCE_FREE_HOST_OFFSET_PARAM);
+                if (offsetParam != null && offsetParam.HasValue)
+                {
+                    levelOffset = offsetParam.AsDouble();
+                    levelOffsetSource = "Level Offset";
+                    levelOffsetString = levelOffset.Value.ToString();
+                }
+            }
 
             // Get design option
             string designOptionName = null;
@@ -285,33 +296,33 @@ namespace ISPG.Conversion.Core
                 },
                 Identity = new ShellIdentity
                 {
-                    BuildingNumber = buildingNumber.IntValue,
-                    BuildingNumberString = buildingNumber.StringValue,
-                    BuildingNumberSource = buildingNumber.Source,
-                    BuildingNumberParam = buildingNumber.ParameterName
+                    BuildingNumber = (buildingNumber.value as long?) as int?,
+                    BuildingNumberString = buildingNumber.valueString,
+                    BuildingNumberSource = buildingNumber.source,
+                    BuildingNumberParam = buildingNumber.paramName
                 },
                 Dimensions = new ShellDimensions
                 {
                     Width = ParameterHelper.CreateLengthRecord(finalWidth),
                     Depth = ParameterHelper.CreateLengthRecord(finalDepth),
-                    Height = ParameterHelper.CreateLengthRecord(height.Value),
-                    DefaultElevation = ParameterHelper.CreateLengthRecord(defaultElevation.Value),
-                    WidthRaw = width.Value,
-                    DepthRaw = depth.Value,
-                    HeightRaw = height.Value,
-                    DefaultElevationRaw = defaultElevation.Value,
-                    WidthString = width.StringValue,
-                    DepthString = depth.StringValue,
-                    HeightString = height.StringValue,
-                    DefaultElevationString = defaultElevation.StringValue,
-                    WidthSource = width.Value != null ? width.Source : "parsed_type_name",
-                    DepthSource = depth.Value != null ? depth.Source : "parsed_type_name",
-                    HeightSource = height.Source,
-                    DefaultElevationSource = defaultElevation.Source,
-                    WidthParam = width.ParameterName,
-                    DepthParam = depth.ParameterName,
-                    HeightParam = height.ParameterName,
-                    DefaultElevationParam = defaultElevation.ParameterName,
+                    Height = ParameterHelper.CreateLengthRecord(height.value),
+                    DefaultElevation = ParameterHelper.CreateLengthRecord(defaultElevation.value),
+                    WidthRaw = width.value,
+                    DepthRaw = depth.value,
+                    HeightRaw = height.value,
+                    DefaultElevationRaw = defaultElevation.value,
+                    WidthString = width.valueString,
+                    DepthString = depth.valueString,
+                    HeightString = height.valueString,
+                    DefaultElevationString = defaultElevation.valueString,
+                    WidthSource = width.value != null ? width.source : "parsed_type_name",
+                    DepthSource = depth.value != null ? depth.source : "parsed_type_name",
+                    HeightSource = height.source,
+                    DefaultElevationSource = defaultElevation.source,
+                    WidthParam = width.paramName,
+                    DepthParam = depth.paramName,
+                    HeightParam = height.paramName,
+                    DefaultElevationParam = defaultElevation.paramName,
                     ParsedWidthFeet = parsedWidth,
                     ParsedDepthFeet = parsedDepth
                 },
@@ -321,7 +332,7 @@ namespace ISPG.Conversion.Core
                     XFeet = (instance.Location as LocationPoint)?.Point.X ?? 0,
                     YFeet = (instance.Location as LocationPoint)?.Point.Y ?? 0,
                     ZFeet = (instance.Location as LocationPoint)?.Point.Z ?? 0,
-                    RotationDegrees = rotationDegrees.Value
+                    RotationDegrees = rotationDegrees.value
                 } : null,
                 BoundingBox = GetBoundingBox(instance),
                 Mirrored = instance.Mirrored,
@@ -331,8 +342,8 @@ namespace ISPG.Conversion.Core
                 LevelName = levelName,
                 LevelOffset = levelOffset.HasValue ? new LevelOffsetData
                 {
-                    Feet = levelOffset.Value,
-                    Inches = levelOffset.Value * 12,
+                    Feet = levelOffset.value,
+                    Inches = levelOffset.value * 12,
                     Source = levelOffsetSource,
                     ValueString = levelOffsetString
                 } : null,
@@ -342,7 +353,7 @@ namespace ISPG.Conversion.Core
                 CreatedPhase = GetPhaseName(instance.CreatedPhaseId),
                 DemolishedPhaseId = ParameterHelper.GetElementIdValue(instance.DemolishedPhaseId),
                 DemolishedPhase = GetPhaseName(instance.DemolishedPhaseId),
-                Parameters = ParameterHelper.GetAllParameters(instance, symbol)
+                Parameters = null  // TODO: Implement GetAllParameters when needed
             };
         }
 
@@ -371,13 +382,13 @@ namespace ISPG.Conversion.Core
             {
                 var sourceFlags = BuildUx4IconShellFlags(instance, symbol);
                 foreach (var kvp in sourceFlags)
-                    flags[kvp.Key] = kvp.Value;
+                    flags[kvp.Key] = kvp.value;
             }
             else if (sourceKind == "ux3_shell" || sourceKind == "ispg_ux_shell")
             {
                 var sourceFlags = BuildNameBasedShellFlags(familyName, typeName);
                 foreach (var kvp in sourceFlags)
-                    flags[kvp.Key] = kvp.Value;
+                    flags[kvp.Key] = kvp.value;
             }
 
             return flags;
@@ -390,14 +401,14 @@ namespace ISPG.Conversion.Core
             foreach (var targetParam in ShellParameterHelper.UX5_SHELL_FLAG_PARAMS)
             {
                 var paramValue = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { targetParam });
-                bool value = ParameterHelper.Boolish(paramValue.RawValue);
+                bool value = ParameterHelper.Boolish(paramValue.value);
 
                 // Special handling for Type Wall based on role
-                if (targetParam == "Type Wall" && paramValue.RawValue == null)
+                if (targetParam == "Type Wall" && paramValue.value == null)
                 {
                     value = (role == "wall");
                 }
-                else if (paramValue.RawValue == null)
+                else if (paramValue.value == null)
                 {
                     value = false;
                 }
@@ -406,10 +417,10 @@ namespace ISPG.Conversion.Core
                 {
                     Name = targetParam,
                     Value = value,
-                    Source = paramValue.Source ?? (targetParam == "Type Wall" && role == "wall" ? "role_is_wall" : "default_false"),
-                    SourceParam = paramValue.ParameterName,
-                    Raw = paramValue.RawValue,
-                    ValueString = paramValue.StringValue
+                    Source = paramValue.source ?? (targetParam == "Type Wall" && role == "wall" ? "role_is_wall" : "default_false"),
+                    SourceParam = paramValue.paramName,
+                    Raw = paramValue.value,
+                    ValueString = paramValue.valueString
                 };
             }
 
@@ -423,19 +434,19 @@ namespace ISPG.Conversion.Core
             foreach (var kvp in ShellParameterHelper.UX4_ICON_PARAMS_TO_FLAGS)
             {
                 string sourceParam = kvp.Key;
-                string targetFlag = kvp.Value;
+                string targetFlag = kvp.value;
 
                 var paramValue = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { sourceParam });
-                bool value = ParameterHelper.Boolish(paramValue.RawValue);
+                bool value = ParameterHelper.Boolish(paramValue.value);
 
                 flags[targetFlag] = new FlagRecord
                 {
                     Name = targetFlag,
                     Value = value,
-                    Source = paramValue.Source ?? "default_false",
+                    Source = paramValue.source ?? "default_false",
                     SourceParam = sourceParam,
-                    Raw = paramValue.RawValue,
-                    ValueString = paramValue.StringValue
+                    Raw = paramValue.value,
+                    ValueString = paramValue.valueString
                 };
             }
 
@@ -461,7 +472,7 @@ namespace ISPG.Conversion.Core
             foreach (var mapping in flagMappings)
             {
                 string flagName = mapping.Key;
-                bool found = mapping.Value.Any(keyword => combined.Contains(keyword));
+                bool found = mapping.value.Any(keyword => combined.Contains(keyword));
                 flags[flagName] = CreateFlagRecord(flagName, found, found ? "parsed_from_name" : "default_false");
             }
 
@@ -523,8 +534,8 @@ namespace ISPG.Conversion.Core
             var match = Regex.Match(typeName, @"(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
-                if (double.TryParse(match.Groups[1].Value, out double w) &&
-                    double.TryParse(match.Groups[2].Value, out double d))
+                if (double.TryParse(match.Groups[1].value, out double w) &&
+                    double.TryParse(match.Groups[2].value, out double d))
                 {
                     return Tuple.Create<double?, double?>(w, d);
                 }

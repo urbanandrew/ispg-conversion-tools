@@ -75,13 +75,13 @@ namespace ISPG.Conversion.Core
                         records.Add(record);
 
                         // Count match reasons
-                        string reason = record.Source.MatchReason ?? "unknown";
+                        string reason = record.source.MatchReason ?? "unknown";
                         if (!matchReasonCounts.ContainsKey(reason))
                             matchReasonCounts[reason] = 0;
                         matchReasonCounts[reason]++;
 
                         // Count source origins
-                        string sourceOrigin = record.Source.SourceOrigin ?? "unknown";
+                        string sourceOrigin = record.source.sourceOrigin ?? "unknown";
                         if (!sourceOriginCounts.ContainsKey(sourceOrigin))
                             sourceOriginCounts[sourceOrigin] = 0;
                         sourceOriginCounts[sourceOrigin]++;
@@ -260,7 +260,7 @@ namespace ISPG.Conversion.Core
                 },
                 Identity = new UnitIdentity
                 {
-                    BuildingNumber = buildingNumber.value as int?,
+                    BuildingNumber = (buildingNumber.value as long?) as int? as int?,
                     BuildingNumberString = buildingNumber.valueString,
                     BuildingNumberSource = buildingNumber.source,
                     BuildingNumberParam = buildingNumber.paramName,
@@ -383,8 +383,8 @@ namespace ISPG.Conversion.Core
                 LevelName = levelName,
                 LevelOffset = levelOffset.HasValue ? new LevelOffsetData
                 {
-                    Feet = levelOffset.Value,
-                    Inches = levelOffset.Value * 12,
+                    Feet = levelOffset.value,
+                    Inches = levelOffset.value * 12,
                     Source = levelOffsetSource,
                     ValueString = levelOffsetString
                 } : null,
@@ -394,7 +394,7 @@ namespace ISPG.Conversion.Core
                 CreatedPhase = GetPhaseName(instance.CreatedPhaseId),
                 DemolishedPhaseId = ParameterHelper.GetElementIdValue(instance.DemolishedPhaseId),
                 DemolishedPhase = GetPhaseName(instance.DemolishedPhaseId),
-                Parameters = ParameterHelper.GetAllParameters(instance, symbol)
+                Parameters = null  // TODO: Implement GetAllParameters when needed
             };
         }
 
