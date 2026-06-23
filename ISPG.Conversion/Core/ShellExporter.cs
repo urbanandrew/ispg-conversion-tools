@@ -137,7 +137,7 @@ namespace ISPG.Conversion.Core
             {
                 // Check Type Wall parameter
                 var typeWall = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { "Type Wall" });
-                if (ParameterHelper.Boolish(typeWall.value))
+                if (ParameterHelper.Boolish(typeWall.Value) ?? false)
                     return "wall";
                 return "shell";
             }
@@ -269,7 +269,7 @@ namespace ISPG.Conversion.Core
                     RevitVersion = "2022_plus_ux5_shell",
                     DocumentTitle = _doc.Title,
                     DocumentPath = _doc.PathName,
-                    ElementId = ParameterHelper.GetElementIdValue(instance.Id),
+                    ElementId = (int?)ParameterHelper.GetElementIdValue(instance.Id),
                     UniqueId = instance.UniqueId,
                     FamilyName = familyName,
                     TypeName = typeName,
@@ -464,7 +464,7 @@ namespace ISPG.Conversion.Core
             foreach (var mapping in flagMappings)
             {
                 string flagName = mapping.Key;
-                bool found = mapping.value.Any(keyword => combined.Contains(keyword));
+                bool found = mapping.Value.Any(keyword => combined.Contains(keyword));
                 flags[flagName] = CreateFlagRecord(flagName, found, found ? "parsed_from_name" : "default_false");
             }
 
