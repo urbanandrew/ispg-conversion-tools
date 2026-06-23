@@ -5,6 +5,7 @@ namespace ISPG.Conversion.Models
 {
     /// <summary>
     /// Shared schema types used by Parking, Unit, and Shell exporters
+    /// (types not already defined in JsonSchema.cs)
     /// </summary>
     
     public class ExportMetadata
@@ -76,84 +77,6 @@ namespace ISPG.Conversion.Models
         public double RotationDegrees { get; set; }
     }
 
-    public class BoundingBoxData
-    {
-        [JsonProperty("min")]
-        public CoordData Min { get; set; }
-
-        [JsonProperty("max")]
-        public CoordData Max { get; set; }
-
-        [JsonProperty("size")]
-        public SizeData Size { get; set; }
-    }
-
-    public class CoordData
-    {
-        [JsonProperty("x_feet")]
-        public double XFeet { get; set; }
-
-        [JsonProperty("y_feet")]
-        public double YFeet { get; set; }
-
-        [JsonProperty("z_feet")]
-        public double ZFeet { get; set; }
-    }
-
-    public class SizeData
-    {
-        [JsonProperty("x_feet")]
-        public double XFeet { get; set; }
-
-        [JsonProperty("y_feet")]
-        public double YFeet { get; set; }
-
-        [JsonProperty("z_feet")]
-        public double ZFeet { get; set; }
-
-        [JsonProperty("x_inches")]
-        public double XInches { get; set; }
-
-        [JsonProperty("y_inches")]
-        public double YInches { get; set; }
-
-        [JsonProperty("z_inches")]
-        public double ZInches { get; set; }
-    }
-
-    public class LevelOffsetData
-    {
-        [JsonProperty("feet")]
-        public double Feet { get; set; }
-
-        [JsonProperty("inches")]
-        public double Inches { get; set; }
-
-        [JsonProperty("source")]
-        public string Source { get; set; }
-
-        [JsonProperty("value_string")]
-        public string ValueString { get; set; }
-    }
-
-    public class LengthRecord
-    {
-        [JsonProperty("feet")]
-        public double? Feet { get; set; }
-
-        [JsonProperty("inches")]
-        public double? Inches { get; set; }
-
-        [JsonProperty("feet_decimal")]
-        public double? FeetDecimal { get; set; }
-
-        [JsonProperty("inches_decimal")]
-        public double? InchesDecimal { get; set; }
-
-        [JsonProperty("formatted")]
-        public string Formatted { get; set; }
-    }
-
     public class ParametersData
     {
         [JsonProperty("instance")]
@@ -183,4 +106,62 @@ namespace ISPG.Conversion.Models
         [JsonProperty("value_string")]
         public string ValueString { get; set; }
     }
+
+    public class SourceData
+    {
+        [JsonProperty("revit_version")]
+        public string RevitVersion { get; set; }
+
+        [JsonProperty("document_title")]
+        public string DocumentTitle { get; set; }
+
+        [JsonProperty("document_path")]
+        public string DocumentPath { get; set; }
+
+        [JsonProperty("element_id")]
+        public int? ElementId { get; set; }
+
+        [JsonProperty("unique_id")]
+        public string UniqueId { get; set; }
+
+        [JsonProperty("family_name")]
+        public string FamilyName { get; set; }
+
+        [JsonProperty("type_name")]
+        public string TypeName { get; set; }
+
+        [JsonProperty("ux_role")]
+        public string UxRole { get; set; }
+
+        [JsonProperty("match_reason")]
+        public string MatchReason { get; set; }
+
+        [JsonProperty("source_origin")]
+        public string SourceOrigin { get; set; }
+    }
+
+    public class MigrationAssumptions
+    {
+        [JsonProperty("old_origin")]
+        public string OldOrigin { get; set; }
+
+        [JsonProperty("source_origin")]
+        public string SourceOrigin { get; set; }
+
+        [JsonProperty("target_origin")]
+        public string TargetOrigin { get; set; }
+
+        [JsonProperty("width_direction_basis")]
+        public string WidthDirectionBasis { get; set; }
+
+        [JsonProperty("depth_direction_basis")]
+        public string DepthDirectionBasis { get; set; }
+
+        [JsonProperty("legacy_center_to_target_front_left_width_factor")]
+        public double LegacyCenterToTargetFrontLeftWidthFactor { get; set; }
+
+        [JsonProperty("legacy_center_to_target_front_left_depth_factor")]
+        public double LegacyCenterToTargetFrontLeftDepthFactor { get; set; }
+    }
 }
+
