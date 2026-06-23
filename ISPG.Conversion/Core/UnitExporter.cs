@@ -81,7 +81,7 @@ namespace ISPG.Conversion.Core
                         matchReasonCounts[reason]++;
 
                         // Count source origins
-                        string sourceOrigin = record.Source.sourceOrigin ?? "unknown";
+                        string sourceOrigin = record.Source.SourceOrigin ?? "unknown";
                         if (!sourceOriginCounts.ContainsKey(sourceOrigin))
                             sourceOriginCounts[sourceOrigin] = 0;
                         sourceOriginCounts[sourceOrigin]++;
@@ -260,7 +260,7 @@ namespace ISPG.Conversion.Core
                 },
                 Identity = new UnitIdentity
                 {
-                    BuildingNumber = buildingNumber.value,
+                    BuildingNumber = buildingNumber.value as int?,
                     BuildingNumberString = buildingNumber.valueString,
                     BuildingNumberSource = buildingNumber.source,
                     BuildingNumberParam = buildingNumber.paramName,
@@ -273,12 +273,12 @@ namespace ISPG.Conversion.Core
                 {
                     Width = ParameterHelper.CreateLengthRecord(finalWidth),
                     Depth = ParameterHelper.CreateLengthRecord(finalDepth),
-                    Height = ParameterHelper.CreateLengthRecord(height.value),
-                    DefaultElevation = ParameterHelper.CreateLengthRecord(defaultElevation.value),
-                    WidthRaw = width.value,
-                    DepthRaw = depth.value,
-                    HeightRaw = height.value,
-                    DefaultElevationRaw = defaultElevation.value,
+                    Height = ParameterHelper.CreateLengthRecord(height.value as double?),
+                    DefaultElevation = ParameterHelper.CreateLengthRecord(defaultElevation.value as double?),
+                    WidthRaw = width.value as double?,
+                    DepthRaw = depth.value as double?,
+                    HeightRaw = height.value as double?,
+                    DefaultElevationRaw = defaultElevation.value as double?,
                     WidthString = width.valueString,
                     DepthString = depth.valueString,
                     HeightString = height.valueString,
@@ -373,7 +373,7 @@ namespace ISPG.Conversion.Core
                     XFeet = (instance.Location as LocationPoint)?.Point.X ?? 0,
                     YFeet = (instance.Location as LocationPoint)?.Point.Y ?? 0,
                     ZFeet = (instance.Location as LocationPoint)?.Point.Z ?? 0,
-                    RotationDegrees = rotationDegrees.value
+                    RotationDegrees = rotationDegrees.value as double?
                 } : null,
                 BoundingBox = GetBoundingBox(instance),
                 Mirrored = instance.Mirrored,
@@ -383,8 +383,8 @@ namespace ISPG.Conversion.Core
                 LevelName = levelName,
                 LevelOffset = levelOffset.HasValue ? new LevelOffsetData
                 {
-                    Feet = levelOffset.value,
-                    Inches = levelOffset.value * 12,
+                    Feet = levelOffset.Value,
+                    Inches = levelOffset.Value * 12,
                     Source = levelOffsetSource,
                     ValueString = levelOffsetString
                 } : null,
