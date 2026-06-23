@@ -86,27 +86,6 @@ namespace ISPG.Conversion.Models
         public Dictionary<string, object> Type { get; set; }
     }
 
-    public class BoolRecord
-    {
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("value")]
-        public bool Value { get; set; }
-
-        [JsonProperty("source")]
-        public string Source { get; set; }
-
-        [JsonProperty("source_param")]
-        public string SourceParam { get; set; }
-
-        [JsonProperty("raw")]
-        public object Raw { get; set; }
-
-        [JsonProperty("value_string")]
-        public string ValueString { get; set; }
-    }
-
     public class SourceData
     {
         [JsonProperty("revit_version")]
@@ -138,30 +117,6 @@ namespace ISPG.Conversion.Models
 
         [JsonProperty("source_origin")]
         public string SourceOrigin { get; set; }
-    }
-
-    public class MigrationAssumptions
-    {
-        [JsonProperty("old_origin")]
-        public string OldOrigin { get; set; }
-
-        [JsonProperty("source_origin")]
-        public string SourceOrigin { get; set; }
-
-        [JsonProperty("target_origin")]
-        public string TargetOrigin { get; set; }
-
-        [JsonProperty("width_direction_basis")]
-        public string WidthDirectionBasis { get; set; }
-
-        [JsonProperty("depth_direction_basis")]
-        public string DepthDirectionBasis { get; set; }
-
-        [JsonProperty("legacy_center_to_target_front_left_width_factor")]
-        public double LegacyCenterToTargetFrontLeftWidthFactor { get; set; }
-
-        [JsonProperty("legacy_center_to_target_front_left_depth_factor")]
-        public double LegacyCenterToTargetFrontLeftDepthFactor { get; set; }
     }
 }
 
