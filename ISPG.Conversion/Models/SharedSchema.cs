@@ -29,7 +29,7 @@ namespace ISPG.Conversion.Models
     public class SkippedElement
     {
         [JsonProperty("element_id")]
-        public int? ElementId { get; set; }
+        public long? ElementId { get; set; }
 
         [JsonProperty("family_name")]
         public string FamilyName { get; set; }
@@ -60,6 +60,9 @@ namespace ISPG.Conversion.Models
 
         [JsonProperty("source_origin_counts")]
         public Dictionary<string, int> SourceOriginCounts { get; set; }
+
+        [JsonProperty("match_reason_counts")]
+        public Dictionary<string, int> MatchReasonCounts { get; set; }
     }
 
     public class PlacementData
@@ -98,7 +101,7 @@ namespace ISPG.Conversion.Models
         public string DocumentPath { get; set; }
 
         [JsonProperty("element_id")]
-        public int? ElementId { get; set; }
+        public long? ElementId { get; set; }
 
         [JsonProperty("unique_id")]
         public string UniqueId { get; set; }

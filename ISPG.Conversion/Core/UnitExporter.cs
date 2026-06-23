@@ -69,7 +69,7 @@ namespace ISPG.Conversion.Core
                         continue;
                     }
 
-                    var record = BuildUnitRecord(instance, familyName, typeName, matchReason);
+                    var record = BuildUnitRecord(instance, familyName, typeName);
                     if (record != null)
                     {
                         records.Add(record);

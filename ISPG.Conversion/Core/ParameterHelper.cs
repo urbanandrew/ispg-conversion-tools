@@ -245,7 +245,7 @@ namespace ISPG.Conversion.Core
         /// Returns (value, valueString, source ("instance" or "type"), paramName)
         /// </summary>
         public static (object value, string valueString, string source, string paramName) GetFirstParamValue(
-            Element instance, Element symbol, string[] paramNames)
+            Element instance, Element symbol, IEnumerable<string> paramNames)
         {
             // Try instance first
             if (instance != null)
