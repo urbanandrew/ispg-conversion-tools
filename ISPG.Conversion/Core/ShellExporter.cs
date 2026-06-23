@@ -324,26 +324,26 @@ namespace ISPG.Conversion.Core
                     XFeet = (instance.Location as LocationPoint)?.Point.X ?? 0,
                     YFeet = (instance.Location as LocationPoint)?.Point.Y ?? 0,
                     ZFeet = (instance.Location as LocationPoint)?.Point.Z ?? 0,
-                    RotationDegrees = rotationDegrees.value
+                    RotationDegrees = rotationDegrees.Value
                 } : null,
                 BoundingBox = GetBoundingBox(instance),
                 Mirrored = instance.Mirrored,
                 HandFlipped = instance.HandFlipped,
                 FacingFlipped = instance.FacingFlipped,
-                LevelId = ParameterHelper.GetElementIdValue(instance.LevelId),
+                LevelId = (int?)ParameterHelper.GetElementIdValue(instance.LevelId),
                 LevelName = levelName,
                 LevelOffset = levelOffset.HasValue ? new LevelOffsetData
                 {
-                    Feet = levelOffset.value,
-                    Inches = levelOffset.value * 12,
+                    Feet = levelOffset.Value,
+                    Inches = levelOffset.Value * 12,
                     Source = levelOffsetSource,
                     ValueString = levelOffsetString
                 } : null,
                 DesignOption = designOptionName,
                 Workset = GetWorksetName(instance),
-                CreatedPhaseId = ParameterHelper.GetElementIdValue(instance.CreatedPhaseId),
+                CreatedPhaseId = (int?)ParameterHelper.GetElementIdValue(instance.CreatedPhaseId),
                 CreatedPhase = GetPhaseName(instance.CreatedPhaseId),
-                DemolishedPhaseId = ParameterHelper.GetElementIdValue(instance.DemolishedPhaseId),
+                DemolishedPhaseId = (int?)ParameterHelper.GetElementIdValue(instance.DemolishedPhaseId),
                 DemolishedPhase = GetPhaseName(instance.DemolishedPhaseId),
                 Parameters = null  // TODO: Implement GetAllParameters when needed
             };
@@ -374,13 +374,13 @@ namespace ISPG.Conversion.Core
             {
                 var sourceFlags = BuildUx4IconShellFlags(instance, symbol);
                 foreach (var kvp in sourceFlags)
-                    flags[kvp.Key] = kvp.value;
+                    flags[kvp.Key] = kvp.Value;
             }
             else if (sourceKind == "ux3_shell" || sourceKind == "ispg_ux_shell")
             {
                 var sourceFlags = BuildNameBasedShellFlags(familyName, typeName);
                 foreach (var kvp in sourceFlags)
-                    flags[kvp.Key] = kvp.value;
+                    flags[kvp.Key] = kvp.Value;
             }
 
             return flags;
@@ -393,7 +393,7 @@ namespace ISPG.Conversion.Core
             foreach (var targetParam in ShellParameterHelper.UX5_SHELL_FLAG_PARAMS)
             {
                 var paramValue = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { targetParam });
-                bool value = ParameterHelper.Boolish(paramValue.value);
+                bool value = ParameterHelper.Boolish(paramValue.value) ?? false;
 
                 // Special handling for Type Wall based on role
                 if (targetParam == "Type Wall" && paramValue.value == null)
@@ -426,10 +426,10 @@ namespace ISPG.Conversion.Core
             foreach (var kvp in ShellParameterHelper.UX4_ICON_PARAMS_TO_FLAGS)
             {
                 string sourceParam = kvp.Key;
-                string targetFlag = kvp.value;
+                string targetFlag = kvp.Value;
 
                 var paramValue = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { sourceParam });
-                bool value = ParameterHelper.Boolish(paramValue.value);
+                bool value = ParameterHelper.Boolish(paramValue.value) ?? false;
 
                 flags[targetFlag] = new FlagRecord
                 {
@@ -526,8 +526,8 @@ namespace ISPG.Conversion.Core
             var match = Regex.Match(typeName, @"(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
-                if (double.TryParse(match.Groups[1].value, out double w) &&
-                    double.TryParse(match.Groups[2].value, out double d))
+                if (double.TryParse(match.Groups[1].Value, out double w) &&
+                    double.TryParse(match.Groups[2].Value, out double d))
                 {
                     return Tuple.Create<double?, double?>(w, d);
                 }

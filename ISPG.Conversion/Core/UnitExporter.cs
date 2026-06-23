@@ -373,13 +373,13 @@ namespace ISPG.Conversion.Core
                     XFeet = (instance.Location as LocationPoint)?.Point.X ?? 0,
                     YFeet = (instance.Location as LocationPoint)?.Point.Y ?? 0,
                     ZFeet = (instance.Location as LocationPoint)?.Point.Z ?? 0,
-                    RotationDegrees = rotationDegrees.value as double?
+                    RotationDegrees = rotationDegrees.Value as double?
                 } : null,
                 BoundingBox = GetBoundingBox(instance),
                 Mirrored = instance.Mirrored,
                 HandFlipped = instance.HandFlipped,
                 FacingFlipped = instance.FacingFlipped,
-                LevelId = ParameterHelper.GetElementIdValue(instance.LevelId),
+                LevelId = (int?)ParameterHelper.GetElementIdValue(instance.LevelId),
                 LevelName = levelName,
                 LevelOffset = levelOffset.HasValue ? new LevelOffsetData
                 {
@@ -390,9 +390,9 @@ namespace ISPG.Conversion.Core
                 } : null,
                 DesignOption = designOptionName,
                 Workset = GetWorksetName(instance),
-                CreatedPhaseId = ParameterHelper.GetElementIdValue(instance.CreatedPhaseId),
+                CreatedPhaseId = (int?)ParameterHelper.GetElementIdValue(instance.CreatedPhaseId),
                 CreatedPhase = GetPhaseName(instance.CreatedPhaseId),
-                DemolishedPhaseId = ParameterHelper.GetElementIdValue(instance.DemolishedPhaseId),
+                DemolishedPhaseId = (int?)ParameterHelper.GetElementIdValue(instance.DemolishedPhaseId),
                 DemolishedPhase = GetPhaseName(instance.DemolishedPhaseId),
                 Parameters = null  // TODO: Implement GetAllParameters when needed
             };
