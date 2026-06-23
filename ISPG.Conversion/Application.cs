@@ -88,7 +88,7 @@ namespace ISPG.Conversion
             AddPushButton(
                 conversionPanel,
                 "ExportUnits",
-                "Export\\nUnits",
+                "Export\nUnits",
                 "ISPG.Conversion.Commands.Export.ExportUnitsCommand",
                 assemblyPath,
                 "Export units to JSON",
@@ -98,7 +98,7 @@ namespace ISPG.Conversion
             AddPushButton(
                 conversionPanel,
                 "ExportParking",
-                "Export\\nParking",
+                "Export\nParking",
                 "ISPG.Conversion.Commands.Export.ExportParkingCommand",
                 assemblyPath,
                 "Export parking to JSON",
@@ -108,7 +108,7 @@ namespace ISPG.Conversion
             AddPushButton(
                 conversionPanel,
                 "ExportShell",
-                "Export\\nShell",
+                "Export\nShell",
                 "ISPG.Conversion.Commands.Export.ExportShellCommand",
                 assemblyPath,
                 "Export shell data to JSON",
@@ -121,7 +121,7 @@ namespace ISPG.Conversion
             AddPushButton(
                 conversionPanel,
                 "ImportUnits",
-                "Import\\nUnits",
+                "Import\nUnits",
                 "ISPG.Conversion.Commands.Import.ImportUnitsCommand",
                 assemblyPath,
                 "Import units from JSON export",
@@ -131,7 +131,7 @@ namespace ISPG.Conversion
             AddPushButton(
                 conversionPanel,
                 "ImportParking",
-                "Import\\nParking",
+                "Import\nParking",
                 "ISPG.Conversion.Commands.Import.ImportParkingCommand",
                 assemblyPath,
                 "Import parking from JSON export",
@@ -141,7 +141,7 @@ namespace ISPG.Conversion
             AddPushButton(
                 conversionPanel,
                 "ImportShell",
-                "Import\\nShell",
+                "Import\nShell",
                 "ISPG.Conversion.Commands.Import.ImportShellCommand",
                 assemblyPath,
                 "Import shell data from JSON export",

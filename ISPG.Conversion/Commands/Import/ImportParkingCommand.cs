@@ -12,8 +12,8 @@ namespace ISPG.Conversion.Commands.Import
     public class ImportParkingCommand : IExternalCommand
     {
         // Target family/type for import (UX5_Parking)
-        private const string TARGET_FAMILY_NAME = "UX5_Parking";
-        private const string TARGET_TYPE_NAME = "Standard";
+        private const string TARGET_FAMILY_NAME = "UX5 Parking Space";
+        private const string TARGET_TYPE_NAME = "UX5 Parking Space";
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {

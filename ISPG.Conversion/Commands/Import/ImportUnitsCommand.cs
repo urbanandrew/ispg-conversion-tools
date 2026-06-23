@@ -13,7 +13,7 @@ namespace ISPG.Conversion.Commands.Import
     {
         // Target family/type for import (UX5_Unit)
         private const string TARGET_FAMILY_NAME = "UX5_Unit";
-        private const string TARGET_TYPE_NAME = "Standard";
+        private const string TARGET_TYPE_NAME = "UX5_Unit";
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
