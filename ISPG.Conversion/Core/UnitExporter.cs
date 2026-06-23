@@ -373,7 +373,7 @@ namespace ISPG.Conversion.Core
                     XFeet = (instance.Location as LocationPoint)?.Point.X ?? 0,
                     YFeet = (instance.Location as LocationPoint)?.Point.Y ?? 0,
                     ZFeet = (instance.Location as LocationPoint)?.Point.Z ?? 0,
-                    RotationDegrees = rotationDegrees.Value ?? 0.0
+                    RotationDegrees = rotationDegrees.Value
                 } : null,
                 BoundingBox = GetBoundingBox(instance),
                 Mirrored = instance.Mirrored,

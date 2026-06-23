@@ -137,7 +137,7 @@ namespace ISPG.Conversion.Core
             {
                 // Check Type Wall parameter
                 var typeWall = ParameterHelper.GetFirstParamValue(instance, symbol, new List<string> { "Type Wall" });
-                if (ParameterHelper.Boolish(typeWall.Value) ?? false)
+                if (ParameterHelper.Boolish(typeWall.value) ?? false)
                     return "wall";
                 return "shell";
             }
