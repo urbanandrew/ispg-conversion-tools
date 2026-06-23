@@ -70,11 +70,9 @@ namespace ISPG.Conversion.Commands.Export
             if (instance == null || instance.Symbol == null) return false;
 
             string familyName = instance.Symbol.FamilyName ?? "";
-            string typeName = instance.Symbol.Name ?? "";
 
-            // Match families/types containing "Parking" (case-insensitive)
-            return ContainsAny(familyName, new[] { "Parking" }) ||
-                   ContainsAny(typeName, new[] { "Parking" });
+            // Match ONLY "UX5 Parking Space" family (with space, not underscore)
+            return familyName.Equals("UX5 Parking Space", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool ContainsAny(string text, string[] patterns)

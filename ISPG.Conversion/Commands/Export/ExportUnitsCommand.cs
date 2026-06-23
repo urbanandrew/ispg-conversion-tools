@@ -72,9 +72,8 @@ namespace ISPG.Conversion.Commands.Export
             string familyName = instance.Symbol.FamilyName ?? "";
             string typeName = instance.Symbol.Name ?? "";
 
-            // Match families/types containing "UX" or "Unit" (case-insensitive)
-            return ContainsAny(familyName, new[] { "UX", "Unit" }) ||
-                   ContainsAny(typeName, new[] { "UX", "Unit" });
+            // Match ONLY UX5_Unit family
+            return familyName.Equals("UX5_Unit", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool ContainsAny(string text, string[] patterns)

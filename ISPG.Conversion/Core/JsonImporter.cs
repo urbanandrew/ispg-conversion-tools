@@ -145,7 +145,18 @@ namespace ISPG.Conversion.Core
             var level = LevelHelper.FindLevel(_doc, levelName, _customLevelMap);
 
             if (level == null)
-                throw new Exception($"Could not match level: {levelName}");
+            {
+                // Get available levels for diagnostics
+                var availableLevels = new FilteredElementCollector(_doc)
+                    .OfClass(typeof(Level))
+                    .Cast<Level>()
+                    .Select(l => l.Name)
+                    .OrderBy(n => n)
+                    .Take(5);
+                
+                string availableList = string.Join(", ", availableLevels);
+                throw new Exception($"Could not match level '{levelName}'. Available: {availableList}");
+            }
 
             // Get import offset (handles lockers specially)
             double offset = GetImportOffset(unit);

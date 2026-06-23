@@ -70,11 +70,9 @@ namespace ISPG.Conversion.Commands.Export
             if (instance == null || instance.Symbol == null) return false;
 
             string familyName = instance.Symbol.FamilyName ?? "";
-            string typeName = instance.Symbol.Name ?? "";
 
-            // Match families/types containing "Shell" (case-insensitive)
-            return ContainsAny(familyName, new[] { "Shell" }) ||
-                   ContainsAny(typeName, new[] { "Shell" });
+            // Match ONLY UX5_Shell family
+            return familyName.Equals("UX5_Shell", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool ContainsAny(string text, string[] patterns)
