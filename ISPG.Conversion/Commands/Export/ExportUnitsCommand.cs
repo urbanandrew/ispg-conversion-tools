@@ -55,25 +55,46 @@ namespace ISPG.Conversion.Commands.Export
 
         /// <summary>
         /// Find all unit family instances in the document
-        /// Matches families/types containing "UX" or "Unit"
+        /// Matches legacy families (ISPG UX Shell/Unit, UX3/UX4) and current UX5_Unit families
         /// </summary>
         private IEnumerable<FamilyInstance> FindUnits(Document doc)
         {
+            // Family name patterns to match (case-insensitive contains or starts-with)
+            string[] containsPatterns = new[] { "ISPG UX Shell", "ISPG UX Unit", "UX4 Unit" };
+            string[] startsWithPatterns = new[] { "UX3 Unit", "UX5_Unit" };
+
             return new FilteredElementCollector(doc)
-                .OfClass(typeof(FamilyInstance))
+                .OfCategory(BuiltInCategory.OST_GenericModel)
+                .WhereElementIsNotElementType()
                 .Cast<FamilyInstance>()
-                .Where(fi => IsUnit(fi));
+                .Where(fi => IsUnit(fi, containsPatterns, startsWithPatterns));
         }
 
-        private bool IsUnit(FamilyInstance instance)
+        private bool IsUnit(FamilyInstance instance, string[] containsPatterns, string[] startsWithPatterns)
         {
             if (instance == null || instance.Symbol == null) return false;
 
             string familyName = instance.Symbol.FamilyName ?? "";
             string typeName = instance.Symbol.Name ?? "";
+            string combined = $"{familyName} {typeName}".ToLowerInvariant();
 
-            // Match ONLY UX5_Unit family
-            return familyName.Equals("UX5_Unit", StringComparison.OrdinalIgnoreCase);
+            // Check contains patterns
+            foreach (var pattern in containsPatterns)
+            {
+                if (combined.Contains(pattern.ToLowerInvariant()))
+                    return true;
+            }
+
+            // Check starts-with patterns
+            foreach (var pattern in startsWithPatterns)
+            {
+                string patternLower = pattern.ToLowerInvariant();
+                if (familyName.ToLowerInvariant().StartsWith(patternLower) ||
+                    typeName.ToLowerInvariant().StartsWith(patternLower))
+                    return true;
+            }
+
+            return false;
         }
 
         private bool ContainsAny(string text, string[] patterns)

@@ -55,24 +55,35 @@ namespace ISPG.Conversion.Commands.Export
 
         /// <summary>
         /// Find all shell family instances in the document
-        /// Matches families/types containing "Shell"
+        /// Matches legacy families (UX3/UX4 Shell, ISPG UX Shell) and current UX5_Shell
         /// </summary>
         private IEnumerable<FamilyInstance> FindShell(Document doc)
         {
+            // Shell family name patterns (case-insensitive contains)
+            string[] patterns = new[] { "UX3 Shell", "UX4 Shell", "ISPG UX Shell", "UX5_Shell" };
+
             return new FilteredElementCollector(doc)
-                .OfClass(typeof(FamilyInstance))
+                .OfCategory(BuiltInCategory.OST_GenericModel)
+                .WhereElementIsNotElementType()
                 .Cast<FamilyInstance>()
-                .Where(fi => IsShell(fi));
+                .Where(fi => IsShell(fi, patterns));
         }
 
-        private bool IsShell(FamilyInstance instance)
+        private bool IsShell(FamilyInstance instance, string[] patterns)
         {
             if (instance == null || instance.Symbol == null) return false;
 
             string familyName = instance.Symbol.FamilyName ?? "";
+            string typeName = instance.Symbol.Name ?? "";
+            string combined = $"{familyName} {typeName}".ToLowerInvariant();
 
-            // Match ONLY UX5_Shell family
-            return familyName.Equals("UX5_Shell", StringComparison.OrdinalIgnoreCase);
+            foreach (var pattern in patterns)
+            {
+                if (combined.Contains(pattern.ToLowerInvariant()))
+                    return true;
+            }
+
+            return false;
         }
 
         private bool ContainsAny(string text, string[] patterns)

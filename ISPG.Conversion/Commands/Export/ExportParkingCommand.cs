@@ -54,25 +54,35 @@ namespace ISPG.Conversion.Commands.Export
         }
 
         /// <summary>
-        /// Find all parking family instances in the document
-        /// Matches families/types containing "Parking"
+        /// Find all parking space family instances in the document
+        /// Matches legacy families (ISPG Parking Space) and current UX5 Parking Space
         /// </summary>
         private IEnumerable<FamilyInstance> FindParking(Document doc)
         {
+            // Parking family name patterns (case-insensitive contains)
+            string[] patterns = new[] { "_ISPG Parking Space", "ISPG Parking Space", "Parking Space", "UX5 Parking Space" };
+
             return new FilteredElementCollector(doc)
                 .OfClass(typeof(FamilyInstance))
                 .Cast<FamilyInstance>()
-                .Where(fi => IsParking(fi));
+                .Where(fi => IsParking(fi, patterns));
         }
 
-        private bool IsParking(FamilyInstance instance)
+        private bool IsParking(FamilyInstance instance, string[] patterns)
         {
             if (instance == null || instance.Symbol == null) return false;
 
             string familyName = instance.Symbol.FamilyName ?? "";
+            string typeName = instance.Symbol.Name ?? "";
+            string combined = $"{familyName} {typeName}".ToLowerInvariant();
 
-            // Match ONLY "UX5 Parking Space" family (with space, not underscore)
-            return familyName.Equals("UX5 Parking Space", StringComparison.OrdinalIgnoreCase);
+            foreach (var pattern in patterns)
+            {
+                if (combined.Contains(pattern.ToLowerInvariant()))
+                    return true;
+            }
+
+            return false;
         }
 
         private bool ContainsAny(string text, string[] patterns)
