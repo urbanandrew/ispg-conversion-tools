@@ -35,8 +35,8 @@ namespace ISPG.Conversion.Commands.Export
                 // Ensure C:\Temp exists
                 Directory.CreateDirectory(@"C:\Temp");
 
-                // Export
-                var exporter = new JsonExporter(doc, "parking");
+                // Export using dedicated parking exporter
+                var exporter = new ParkingExporter(doc);
                 exporter.Export(parkingInstances, outputPath);
 
                 // Show success message
@@ -59,30 +59,21 @@ namespace ISPG.Conversion.Commands.Export
         /// </summary>
         private IEnumerable<FamilyInstance> FindParking(Document doc)
         {
-            // Parking family name patterns (case-insensitive contains)
-            string[] patterns = new[] { "_ISPG Parking Space", "ISPG Parking Space", "Parking Space", "UX5 Parking Space" };
-
+            // Match Python PARKING_FAMILY_NAME_CONTAINS exactly
             return new FilteredElementCollector(doc)
                 .OfClass(typeof(FamilyInstance))
                 .Cast<FamilyInstance>()
-                .Where(fi => IsParking(fi, patterns));
+                .Where(fi => IsParking(fi));
         }
 
-        private bool IsParking(FamilyInstance instance, string[] patterns)
+        private bool IsParking(FamilyInstance instance)
         {
             if (instance == null || instance.Symbol == null) return false;
 
             string familyName = instance.Symbol.FamilyName ?? "";
-            string typeName = instance.Symbol.Name ?? "";
-            string combined = $"{familyName} {typeName}".ToLowerInvariant();
 
-            foreach (var pattern in patterns)
-            {
-                if (combined.Contains(pattern.ToLowerInvariant()))
-                    return true;
-            }
-
-            return false;
+            // Match Python: PARKING_FAMILY_NAME_CONTAINS = ["Parking Space"]
+            return familyName.IndexOf("Parking Space", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private bool ContainsAny(string text, string[] patterns)
