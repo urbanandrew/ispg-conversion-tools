@@ -75,13 +75,13 @@ namespace ISPG.Conversion.Core
                         records.Add(record);
 
                         // Count match reasons
-                        string reason = record.source.MatchReason ?? "unknown";
+                        string reason = record.Source.MatchReason ?? "unknown";
                         if (!matchReasonCounts.ContainsKey(reason))
                             matchReasonCounts[reason] = 0;
                         matchReasonCounts[reason]++;
 
                         // Count source origins
-                        string sourceOrigin = record.source.sourceOrigin ?? "unknown";
+                        string sourceOrigin = record.Source.SourceOrigin ?? "unknown";
                         if (!sourceOriginCounts.ContainsKey(sourceOrigin))
                             sourceOriginCounts[sourceOrigin] = 0;
                         sourceOriginCounts[sourceOrigin]++;
@@ -260,7 +260,7 @@ namespace ISPG.Conversion.Core
                 },
                 Identity = new UnitIdentity
                 {
-                    BuildingNumber = (buildingNumber.value as long?) as int? as int?,
+                    BuildingNumber = (int?)(buildingNumber.value as long?),
                     BuildingNumberString = buildingNumber.valueString,
                     BuildingNumberSource = buildingNumber.source,
                     BuildingNumberParam = buildingNumber.paramName,
@@ -383,8 +383,8 @@ namespace ISPG.Conversion.Core
                 LevelName = levelName,
                 LevelOffset = levelOffset.HasValue ? new LevelOffsetData
                 {
-                    Feet = levelOffset.value,
-                    Inches = levelOffset.value * 12,
+                    Feet = levelOffset.Value,
+                    Inches = levelOffset.Value * 12,
                     Source = levelOffsetSource,
                     ValueString = levelOffsetString
                 } : null,
@@ -404,8 +404,8 @@ namespace ISPG.Conversion.Core
             var match = Regex.Match(typeName, @"(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
-                if (double.TryParse(match.Groups[1].value, out double w) &&
-                    double.TryParse(match.Groups[2].value, out double d))
+                if (double.TryParse(match.Groups[1].Value, out double w) &&
+                    double.TryParse(match.Groups[2].Value, out double d))
                 {
                     return Tuple.Create<double?, double?>(w, d);
                 }

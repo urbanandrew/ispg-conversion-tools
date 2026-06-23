@@ -36,7 +36,6 @@ namespace ISPG.Conversion.Core
             var records = new List<ShellRecord>();
             var skipped = new List<SkippedElement>();
             var roleCounts = new Dictionary<string, int>();
-            var sourceKindCounts = new Dictionary<string, int>();
             var sourceOriginCounts = new Dictionary<string, int>();
 
             foreach (var instance in elements)
@@ -89,14 +88,8 @@ namespace ISPG.Conversion.Core
                             roleCounts[role] = 0;
                         roleCounts[role]++;
 
-                        // Count source kinds
-                        string sourceKind = record.source.sourceKind ?? "unknown";
-                        if (!sourceKindCounts.ContainsKey(sourceKind))
-                            sourceKindCounts[sourceKind] = 0;
-                        sourceKindCounts[sourceKind]++;
-
                         // Count source origins
-                        string sourceOrigin = record.source.sourceOrigin ?? "unknown";
+                        string sourceOrigin = record.Source.SourceOrigin ?? "unknown";
                         if (!sourceOriginCounts.ContainsKey(sourceOrigin))
                             sourceOriginCounts[sourceOrigin] = 0;
                         sourceOriginCounts[sourceOrigin]++;
@@ -130,7 +123,6 @@ namespace ISPG.Conversion.Core
                     SuccessfulExports = records.Count,
                     SkippedCount = skipped.Count,
                     RoleCounts = roleCounts,
-                    SourceKindCounts = sourceKindCounts,
                     SourceOriginCounts = sourceOriginCounts
                 }
             };
@@ -212,8 +204,8 @@ namespace ISPG.Conversion.Core
                 parsedDepth = parsed.Item2;
             }
 
-            double? finalWidth = width.value ?? parsedWidth;
-            double? finalDepth = depth.value ?? parsedDepth;
+            double? finalWidth = width.value as double? ?? parsedWidth;
+            double? finalDepth = depth.value as double? ?? parsedDepth;
 
             // Get level info
             string levelName = null;
@@ -305,12 +297,12 @@ namespace ISPG.Conversion.Core
                 {
                     Width = ParameterHelper.CreateLengthRecord(finalWidth),
                     Depth = ParameterHelper.CreateLengthRecord(finalDepth),
-                    Height = ParameterHelper.CreateLengthRecord(height.value),
-                    DefaultElevation = ParameterHelper.CreateLengthRecord(defaultElevation.value),
-                    WidthRaw = width.value,
-                    DepthRaw = depth.value,
-                    HeightRaw = height.value,
-                    DefaultElevationRaw = defaultElevation.value,
+                    Height = ParameterHelper.CreateLengthRecord(height.value as double?),
+                    DefaultElevation = ParameterHelper.CreateLengthRecord(defaultElevation.value as double?),
+                    WidthRaw = width.value as double?,
+                    DepthRaw = depth.value as double?,
+                    HeightRaw = height.value as double?,
+                    DefaultElevationRaw = defaultElevation.value as double?,
                     WidthString = width.valueString,
                     DepthString = depth.valueString,
                     HeightString = height.valueString,
