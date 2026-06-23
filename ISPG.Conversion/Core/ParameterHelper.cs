@@ -26,18 +26,42 @@ namespace ISPG.Conversion.Core
         };
 
         public static readonly string[] WIDTH_PARAMS = {
+            // UX5 modern params
+            "UX5 Width",
+            "UX5 Width (default)",
+            "UX5 Width Simple",
+            "UX5 Width Simple (default)",
+            // Legacy unit params
             "UX_Room_Width",
             "Stretch Width",
-            "Stretch Width (default)"
+            "Stretch Width (default)",
+            // Parking params
+            "SITE_Parking_Width",
+            "Parking Width",
+            "Parking Width (default)"
         };
 
         public static readonly string[] DEPTH_PARAMS = {
+            // UX5 modern params
+            "UX5 Depth",
+            "UX5 Depth (default)",
+            "UX5 Depth Simple",
+            "UX5 Depth Simple (default)",
+            // Legacy unit params
             "UX_Room_Depth",
             "Stretch Depth",
-            "Stretch Depth (default)"
+            "Stretch Depth (default)",
+            // Parking params
+            "SITE_Parking_Depth",
+            "Parking Length",
+            "Parking Length (default)"
         };
 
         public static readonly string[] HEIGHT_PARAMS = {
+            // UX5 modern params  
+            "UX5 Height",
+            "UX5 Height (default)",
+            // Legacy unit params
             "UX_Room_Height",
             "Stretch Height",
             "Stretch Height (default)"
@@ -73,6 +97,10 @@ namespace ISPG.Conversion.Core
         };
 
         public static readonly string[] ACCESSIBLE_PARAMS = {
+            // Parking params (check first - more specific)
+            "Parking Accessible",
+            "Parking Accessible (default)",
+            // Unit params
             "Info Accessible",
             "Info Accessible (default)"
         };
@@ -109,6 +137,34 @@ namespace ISPG.Conversion.Core
 
         public static readonly string[] DEFAULT_ELEVATION_PARAMS = {
             "Default Elevation"
+        };
+
+        // Parking-specific parameters
+        public static readonly string[] PARKING_COVERED_PARAMS = {
+            "Parking Covered",
+            "Parking Covered (default)",
+            "Parking Coverered",  // typo in some families
+            "SITE_Parking_Covered"
+        };
+
+        public static readonly string[] PARKING_RENTABLE_PARAMS = {
+            "Parking Rentable",
+            "Parking Rentable (default)"
+        };
+
+        public static readonly string[] PARKING_ACCESSIBLE_VAN_PARAMS = {
+            "Parking Accessible Van",
+            "Parking Accessible Van (default)"
+        };
+
+        public static readonly string[] PARKING_COMPACT_PARAMS = {
+            "Parking Compact",
+            "Parking Compact (default)"
+        };
+
+        public static readonly string[] PARKING_ELECTRIC_VEHICLE_PARAMS = {
+            "Parking Electric Vehicle",
+            "Parking Electric Vehicle (default)"
         };
 
         /// <summary>
