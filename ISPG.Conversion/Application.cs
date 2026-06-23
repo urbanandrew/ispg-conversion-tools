@@ -19,7 +19,7 @@ namespace ISPG.Conversion
             }
             catch (Exception ex)
             {
-                TaskDialog.Show("ISPG Conversion Startup Error", ex.ToString());
+                TaskDialog.Show("UMX Conversion Startup Error", ex.ToString());
                 return Result.Failed;
             }
         }
@@ -31,7 +31,7 @@ namespace ISPG.Conversion
 
         private void CreateRibbonTab(UIControlledApplication app)
         {
-            string tabName = "ISPG";
+            string tabName = "UMX";
             
             // Create tab (ignore error if already exists)
             try
