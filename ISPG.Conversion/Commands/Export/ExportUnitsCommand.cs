@@ -35,8 +35,8 @@ namespace ISPG.Conversion.Commands.Export
                 // Ensure C:\Temp exists
                 Directory.CreateDirectory(@"C:\Temp");
 
-                // Export
-                var exporter = new JsonExporter(doc, "units");
+                // Export using dedicated unit exporter
+                var exporter = new UnitExporter(doc);
                 exporter.Export(unitInstances, outputPath);
 
                 // Show success message
