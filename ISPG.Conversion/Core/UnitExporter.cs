@@ -218,17 +218,33 @@ namespace ISPG.Conversion.Core
             catch { }
 
             // Get rotation
-            double? rotationDegrees = null;
+            double rotationDegrees = 0;
+            XYZ locationPoint = null;
             try
             {
-                var locationPoint = instance.Location as LocationPoint;
-                if (locationPoint != null)
+                var locPoint = instance.Location as LocationPoint;
+                if (locPoint != null)
                 {
-                    double rotationRadians = locationPoint.Rotation;
+                    locationPoint = locPoint.Point;
+                    double rotationRadians = locPoint.Rotation;
                     rotationDegrees = rotationRadians * (180.0 / Math.PI);
                 }
             }
             catch { }
+
+            // Ensure we have a location point - use instance origin if available
+            if (locationPoint == null)
+            {
+                try
+                {
+                    var loc = instance.Location as LocationPoint;
+                    locationPoint = loc?.Point ?? new XYZ(0, 0, 0);
+                }
+                catch
+                {
+                    locationPoint = new XYZ(0, 0, 0);
+                }
+            }
 
             string sourceOrigin = GetSourceOrigin(familyName, typeName);
             string targetOrigin = GetTargetOrigin(familyName, typeName);
@@ -368,13 +384,14 @@ namespace ISPG.Conversion.Core
                     WalkupSource = walkup.source,
                     WalkupParam = walkup.paramName
                 },
-                Placement = rotationDegrees.HasValue ? new PlacementData
+                // ALWAYS create Placement with coordinates and rotation (default to 0 if unavailable)
+                Placement = new PlacementData
                 {
-                    XFeet = (instance.Location as LocationPoint)?.Point.X ?? 0,
-                    YFeet = (instance.Location as LocationPoint)?.Point.Y ?? 0,
-                    ZFeet = (instance.Location as LocationPoint)?.Point.Z ?? 0,
-                    RotationDegrees = rotationDegrees.Value
-                } : null,
+                    XFeet = locationPoint?.X ?? 0,
+                    YFeet = locationPoint?.Y ?? 0,
+                    ZFeet = locationPoint?.Z ?? 0,
+                    RotationDegrees = rotationDegrees
+                },
                 BoundingBox = GetBoundingBox(instance),
                 Mirrored = instance.Mirrored,
                 HandFlipped = instance.HandFlipped,

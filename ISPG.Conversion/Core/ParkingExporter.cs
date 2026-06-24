@@ -179,7 +179,7 @@ namespace ISPG.Conversion.Core
 
             // Get location
             var location = instance.Location as LocationPoint;
-            var position = location?.Point;
+            var position = location?.Point ?? new XYZ(0, 0, 0);  // Always provide a position, default to origin if null
             var rotationRadians = OriginCalculator.GetRotationRadians(location) ?? 0.0;
             var rotationDegrees = OriginCalculator.RadiansToDegrees(rotationRadians);
 
@@ -292,7 +292,8 @@ namespace ISPG.Conversion.Core
                 },
                 Placement = new PlacementInfo
                 {
-                    Location = position != null ? new LocationData
+                    // ALWAYS create Location with coordinates (never null)
+                    Location = new LocationData
                     {
                         Point = new PointData
                         {
@@ -305,7 +306,7 @@ namespace ISPG.Conversion.Core
                         },
                         RotationRadians = rotationRadians,
                         RotationDegrees = rotationDegrees
-                    } : null,
+                    },
                     BoundingBox = GetBoundingBox(instance),
                     Mirrored = instance.Mirrored,
                     HandFlipped = instance.HandFlipped,
