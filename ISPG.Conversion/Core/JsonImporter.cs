@@ -172,6 +172,18 @@ namespace ISPG.Conversion.Core
                 }
             }
 
+            // Bubble up parameter-write diagnostics into the errors collection so the import
+            // dialog shows them. Cap to a sensible number — diagnostics are aggregated across
+            // all records and can balloon fast.
+            if (_paramDiagnostics.Count > 0)
+            {
+                // De-dupe + group: only report each "key -> param (scope)" issue once per import.
+                var distinct = _paramDiagnostics.GroupBy(s => s).OrderByDescending(g => g.Count())
+                    .Select(g => $"{g.Key} (x{g.Count()})").Take(20).ToList();
+                errors.Add($"Parameter-write diagnostics ({_paramDiagnostics.Count} total events, top {distinct.Count} unique):");
+                errors.AddRange(distinct);
+            }
+
             return (importedCount, skippedCount, errors);
         }
 
@@ -457,47 +469,97 @@ namespace ISPG.Conversion.Core
         private void SetUnitParams(FamilyInstance instance, UnitRecord unit)
         {
             // Identity
-            SetParam(instance, "building_number", unit.Identity?.BuildingNumber);
-            SetParam(instance, "unit_number", unit.Identity?.UnitNumber);
+            SetParam(instance, "building_number",
+                (object)unit.Identity?.BuildingNumberString ?? unit.Identity?.BuildingNumber,
+                unit.Identity?.BuildingNumberParam);
+            SetParam(instance, "unit_number",
+                (object)unit.Identity?.UnitNumberString ?? unit.Identity?.UnitNumber,
+                unit.Identity?.UnitNumberParam);
 
-            // Dimensions
-            SetParam(instance, "width", GetLengthFeet(unit, "width"));
-            SetParam(instance, "depth", GetLengthFeet(unit, "depth"));
-            SetParam(instance, "height", GetImportHeight(unit));
+            // Dimensions — exporter records source param name (often type-bound on target too)
+            var dims = unit.Dimensions;
+            SetParam(instance, "width",  GetLengthFeet(unit, "width"),  dims?.WidthParam);
+            SetParam(instance, "depth",  GetLengthFeet(unit, "depth"),  dims?.DepthParam);
+            SetParam(instance, "height", GetImportHeight(unit),         dims?.HeightParam);
 
-            // Classification (boolean fields)
-            if (unit.Classification != null)
+            // Classification (boolean fields). Pass the original source param name so the importer
+            // tries that first — exporter writes the actual Revit parameter the value came from.
+            var c = unit.Classification;
+            if (c != null)
             {
-                SetParam(instance, "climate", BoolToRevit(unit.Classification.Climate));
-                SetParam(instance, "climate_heat_only", BoolToRevit(unit.Classification.ClimateHeatOnly));
-                SetParam(instance, "driveup", BoolToRevit(unit.Classification.Driveup));
-                SetParam(instance, "locker", BoolToRevit(unit.Classification.Locker));
-                SetParam(instance, "ground_access", BoolToRevit(unit.Classification.GroundAccess));
-                SetParam(instance, "accessible", BoolToRevit(unit.Classification.Accessible));
-                SetParam(instance, "obstructions", BoolToRevit(unit.Classification.Obstructions));
-                SetParam(instance, "offline", BoolToRevit(unit.Classification.Offline));
-                SetParam(instance, "portable", BoolToRevit(unit.Classification.Portable));
-                SetParam(instance, "stack_bottom", BoolToRevit(unit.Classification.StackBottom));
-                SetParam(instance, "stack_top", BoolToRevit(unit.Classification.StackTop));
-                SetParam(instance, "walkup", BoolToRevit(unit.Classification.Walkup));
+                SetParam(instance, "climate",           BoolToRevit(c.Climate),         c.ClimateParam);
+                SetParam(instance, "climate_heat_only", BoolToRevit(c.ClimateHeatOnly), c.ClimateHeatOnlyParam);
+                SetParam(instance, "driveup",           BoolToRevit(c.Driveup),         c.DriveupParam);
+                SetParam(instance, "locker",            BoolToRevit(c.Locker),          c.LockerParam);
+                SetParam(instance, "ground_access",     BoolToRevit(c.GroundAccess),    c.GroundAccessParam);
+                SetParam(instance, "accessible",        BoolToRevit(c.Accessible),      c.AccessibleParam);
+                SetParam(instance, "obstructions",      BoolToRevit(c.Obstructions),    c.ObstructionsParam);
+                SetParam(instance, "offline",           BoolToRevit(c.Offline),         c.OfflineParam);
+                SetParam(instance, "portable",          BoolToRevit(c.Portable),        c.PortableParam);
+                SetParam(instance, "stack_bottom",      BoolToRevit(c.StackBottom),     c.StackBottomParam);
+                SetParam(instance, "stack_top",         BoolToRevit(c.StackTop),        c.StackTopParam);
+                SetParam(instance, "walkup",            BoolToRevit(c.Walkup),          c.WalkupParam);
             }
         }
 
+        // Diagnostics about parameter writing during import.
+        // Populated by SetParam and surfaced after Import() completes.
+        private readonly List<string> _paramDiagnostics = new List<string>();
+
         /// <summary>
-        /// Set parameter on element
+        /// Set parameter on element.
+        /// Tries instance parameter first; if that's missing or read-only, falls back to the type
+        /// parameter on the FamilySymbol. Also accepts an optional hinted parameter name from the
+        /// source JSON (e.g. classification.locker_param) as the first thing to try.
         /// </summary>
-        private bool SetParam(Element element, string key, object value)
+        private bool SetParam(Element element, string key, object value, string hintedParamName = null)
         {
-            if (!TARGET_PARAM_MAP.ContainsKey(key) || value == null)
+            if (value == null)
+                return false;
+            if (!TARGET_PARAM_MAP.ContainsKey(key) && string.IsNullOrEmpty(hintedParamName))
                 return false;
 
-            string paramName = TARGET_PARAM_MAP[key];
+            // Candidate parameter names: hinted first, then mapped target name.
+            var candidates = new List<string>();
+            if (!string.IsNullOrEmpty(hintedParamName))
+                candidates.Add(hintedParamName);
+            if (TARGET_PARAM_MAP.ContainsKey(key))
+            {
+                string mapped = TARGET_PARAM_MAP[key];
+                if (!candidates.Contains(mapped))
+                    candidates.Add(mapped);
+            }
 
+            // Resolve element -> {instance element, type element} for two-level lookup.
+            var instance = element as FamilyInstance;
+            FamilySymbol symbol = instance?.Symbol;
+
+            foreach (var paramName in candidates)
+            {
+                // Try instance parameter first.
+                if (TryWriteParameter(element, paramName, value, key, "instance"))
+                    return true;
+
+                // Then fall back to the type parameter (where width/depth/locker often live).
+                if (symbol != null && TryWriteParameter(symbol, paramName, value, key, "type"))
+                    return true;
+            }
+
+            _paramDiagnostics.Add($"{key}: could not write to any of [{string.Join(", ", candidates)}]");
+            return false;
+        }
+
+        private bool TryWriteParameter(Element host, string paramName, object value, string key, string scope)
+        {
             try
             {
-                var param = element.LookupParameter(paramName);
-                if (param == null || param.IsReadOnly)
+                var param = host.LookupParameter(paramName);
+                if (param == null) return false;
+                if (param.IsReadOnly)
+                {
+                    _paramDiagnostics.Add($"{key} -> {paramName} ({scope}) read-only");
                     return false;
+                }
 
                 switch (param.StorageType)
                 {
@@ -524,8 +586,9 @@ namespace ISPG.Conversion.Core
                         return false;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _paramDiagnostics.Add($"{key} -> {paramName} ({scope}) threw: {ex.Message}");
                 return false;
             }
         }
