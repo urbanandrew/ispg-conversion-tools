@@ -74,8 +74,56 @@ namespace ISPG.Conversion.Core
             var json = File.ReadAllText(jsonPath);
             var payload = JsonConvert.DeserializeObject<ExportPayload>(json);
 
-            if (payload == null || payload.Units == null)
+            if (payload == null)
                 throw new Exception("Invalid JSON payload");
+
+            // Normalize: Units export uses "units"; Shells uses "shells"; Parking uses "records".
+            // Coalesce whichever the JSON file provided into the Units collection.
+            if ((payload.Units == null || payload.Units.Count == 0) && payload.Shells != null && payload.Shells.Count > 0)
+                payload.Units = payload.Shells;
+            if ((payload.Units == null || payload.Units.Count == 0) && payload.Records != null && payload.Records.Count > 0)
+                payload.Units = payload.Records;
+
+            if (payload.Units == null || payload.Units.Count == 0)
+                throw new Exception("Invalid JSON payload: no units/shells/records found");
+
+            // Normalize per-record schema variations:
+            //  - Unit/Shell exports put placement coords FLAT and level_name at record root.
+            //  - Parking export uses the nested placement.location.point shape (no normalization needed).
+            // After this loop every record exposes the nested shape the rest of the importer expects.
+            foreach (var record in payload.Units)
+            {
+                if (record == null) continue;
+
+                if (record.Placement == null)
+                    record.Placement = new PlacementInfo();
+
+                record.Placement.NormalizeLocation();
+
+                if (string.IsNullOrEmpty(record.Placement.LevelName) && !string.IsNullOrEmpty(record.LevelNameTop))
+                    record.Placement.LevelName = record.LevelNameTop;
+
+                if (!record.Placement.LevelId.HasValue && record.LevelIdTop.HasValue)
+                    record.Placement.LevelId = record.LevelIdTop;
+
+                if (record.Placement.LevelOffset == null && record.LevelOffsetTop != null)
+                    record.Placement.LevelOffset = record.LevelOffsetTop;
+
+                if (!record.Placement.Mirrored.HasValue && record.MirroredTop.HasValue)
+                    record.Placement.Mirrored = record.MirroredTop;
+                if (!record.Placement.HandFlipped.HasValue && record.HandFlippedTop.HasValue)
+                    record.Placement.HandFlipped = record.HandFlippedTop;
+                if (!record.Placement.FacingFlipped.HasValue && record.FacingFlippedTop.HasValue)
+                    record.Placement.FacingFlipped = record.FacingFlippedTop;
+
+                if (string.IsNullOrEmpty(record.Placement.DesignOption) && !string.IsNullOrEmpty(record.DesignOptionTop))
+                    record.Placement.DesignOption = record.DesignOptionTop;
+                if (string.IsNullOrEmpty(record.Placement.Workset) && !string.IsNullOrEmpty(record.WorksetTop))
+                    record.Placement.Workset = record.WorksetTop;
+
+                if (record.Placement.BoundingBox == null && record.BoundingBoxTop != null)
+                    record.Placement.BoundingBox = record.BoundingBoxTop;
+            }
 
             // Find target symbol
             var symbol = FindFamilySymbol(_targetFamilyName, _targetTypeName);

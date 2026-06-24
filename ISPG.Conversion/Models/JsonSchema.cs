@@ -24,8 +24,16 @@ namespace ISPG.Conversion.Models
         [JsonProperty("counts")]
         public CountInfo Counts { get; set; }
 
+        // Units export uses "units"; shells export uses "shells"; parking export uses "records".
+        // The importer normalizes any of these into Units after deserialization.
         [JsonProperty("units")]
         public List<UnitRecord> Units { get; set; }
+
+        [JsonProperty("shells")]
+        public List<UnitRecord> Shells { get; set; }
+
+        [JsonProperty("records")]
+        public List<UnitRecord> Records { get; set; }
 
         [JsonProperty("skipped")]
         public List<SkippedRecord> Skipped { get; set; }
@@ -113,6 +121,35 @@ namespace ISPG.Conversion.Models
 
         [JsonProperty("placement")]
         public PlacementInfo Placement { get; set; }
+
+        // Unit/Shell exports put these at the record root rather than inside "placement".
+        // ResolveTopLevelPlacementFields() promotes them into Placement during import.
+        [JsonProperty("level_name")]
+        public string LevelNameTop { get; set; }
+
+        [JsonProperty("level_id")]
+        public long? LevelIdTop { get; set; }
+
+        [JsonProperty("level_offset")]
+        public LevelOffsetData LevelOffsetTop { get; set; }
+
+        [JsonProperty("mirrored")]
+        public bool? MirroredTop { get; set; }
+
+        [JsonProperty("hand_flipped")]
+        public bool? HandFlippedTop { get; set; }
+
+        [JsonProperty("facing_flipped")]
+        public bool? FacingFlippedTop { get; set; }
+
+        [JsonProperty("design_option")]
+        public string DesignOptionTop { get; set; }
+
+        [JsonProperty("workset")]
+        public string WorksetTop { get; set; }
+
+        [JsonProperty("bounding_box")]
+        public BoundingBoxData BoundingBoxTop { get; set; }
 
         [JsonProperty("parameters")]
         public ParametersInfo Parameters { get; set; }
@@ -480,6 +517,23 @@ namespace ISPG.Conversion.Models
         [JsonProperty("location")]
         public LocationData Location { get; set; }
 
+        // Flat placement fields used by UnitExporter / ShellExporter.
+        // When Location is null but these are present, FlattenIntoLocation() promotes them.
+        [JsonProperty("x_feet")]
+        public double? XFeet { get; set; }
+
+        [JsonProperty("y_feet")]
+        public double? YFeet { get; set; }
+
+        [JsonProperty("z_feet")]
+        public double? ZFeet { get; set; }
+
+        [JsonProperty("rotation_degrees")]
+        public double? FlatRotationDegrees { get; set; }
+
+        [JsonProperty("rotation_radians")]
+        public double? FlatRotationRadians { get; set; }
+
         [JsonProperty("bounding_box")]
         public BoundingBoxData BoundingBox { get; set; }
 
@@ -512,6 +566,41 @@ namespace ISPG.Conversion.Models
 
         [JsonProperty("phase_demolished")]
         public string PhaseDemolished { get; set; }
+
+        /// <summary>
+        /// If Location is null but flat x_feet/y_feet/z_feet are present, build a LocationData
+        /// from them so the rest of the importer sees a uniform nested shape.
+        /// </summary>
+        public void NormalizeLocation()
+        {
+            if (Location != null && Location.Point != null) return;
+
+            if (XFeet.HasValue || YFeet.HasValue || ZFeet.HasValue)
+            {
+                double x = XFeet ?? 0.0;
+                double y = YFeet ?? 0.0;
+                double z = ZFeet ?? 0.0;
+
+                double? radians = FlatRotationRadians;
+                if (!radians.HasValue && FlatRotationDegrees.HasValue)
+                    radians = FlatRotationDegrees.Value * System.Math.PI / 180.0;
+
+                Location = new LocationData
+                {
+                    Point = new PointData
+                    {
+                        XFeet = x,
+                        YFeet = y,
+                        ZFeet = z,
+                        XInches = x * 12.0,
+                        YInches = y * 12.0,
+                        ZInches = z * 12.0
+                    },
+                    RotationRadians = radians,
+                    RotationDegrees = FlatRotationDegrees
+                };
+            }
+        }
     }
 
     public class LocationData
